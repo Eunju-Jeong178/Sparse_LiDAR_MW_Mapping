@@ -1,1 +1,1 @@
-# Sparse_LiDAR_SLAM_icra2023
+# Sparse_LiDAR_SLAM
