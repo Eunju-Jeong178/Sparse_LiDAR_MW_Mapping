@@ -70,15 +70,22 @@ end
 
 %% 3) Sparse_MW_Mapping parameter
 
-N_GROUP = 4; % the number of cluster for HC
+N_GROUP = 8; % the number of cluster for HC
 MAX_DISTANCE_RANSAC = 0.01; % max allowable distance for inliers (positive scalar)
+NOISE_DISTANCE_TH = 0.4; % the threshold of euclidean distance between the two points
 
 %% 4) Plot trajectory, point cloud, line (moving)
 
+% Define Manhattan frame (MF)
+MF_X = [1;0;0]; MF_Y = [0;1;0]; MF_Z = [0;0;1];
+MF = [MF_X MF_Y MF_Z];
+
 % 1) play 3D moving trajectory of Crazyflie pose (Figure 10)
-figure(10);
-for k = 1:numPose_optitrack
-    figure(10); cla;
+figure(1);
+figure(2);
+%for k = 1:numPose_optitrack
+for k = 1: numPose_optitrack
+    figure(1); cla;
 
     %% 4-1) draw moving trajectory (optitrack)
     p_gc_CF_optitrack = stateEsti_CF_optitrack(1:3,1:k);
@@ -102,7 +109,9 @@ for k = 1:numPose_optitrack
 
     %% 4-3) MW_mapping (Application of ICCAS 2022)
    
-    %% 4-3-1) parameter 설정
+    %% 4-3-1) Find and eliminate noisy points
+    % 결과: points_without_noise
+
     % (timestamp 제외하고) 1x18 --> 1x2 로 변형
     points = [CFPointCloudData_Optitrack(1:k,7:8); CFPointCloudData_Optitrack(1:k,10:11); CFPointCloudData_Optitrack(1:k,13:14); CFPointCloudData_Optitrack(1:k,16:17)];
     %--------------
@@ -112,17 +121,61 @@ for k = 1:numPose_optitrack
     % x,y (back) 
     % 사실 이제 points 에서는 어느 방향인지 상관없음
     %--------------
-    numPoints = size(points,1); % the number of 2D point(x,y)
-    save pointcloud_1x2.mat points; % save 2D point cloud as mat file
+    numPoints = size(points,1); % the number of 2D points(x,y)
 
-    rng('default'); % For reproducibility
-    load pointcloud_1x2.mat
+    noise_index = []; % to append the index of noise point
+    pair = []; % the nearest two points pair
+    %NOISE_DISTANCE_TH = 0.05; % the threshold of euclidean distance between the two points *************
+    
+    for i = 1:numPoints 
+        % 1) i 번째 점을 제외한 점 집합 points_except_i 만들기   
+        for j = 1:numPoints
+            points_except_i(j,:) = points(j,:);
+        end
+        points_except_i(i,:) = []; % i번째 행 삭제
+        
+        % 2) i 번째 점과 가장 가까운 점 찾기
+        % return) 'dist' (euclidean distance between point_i and the nearest point), 'nPointIndex_in_points'
+        point_i = [points(i,1),points(i,2)]; % i 번째 점 (x,y) 정의
+        [nPointIndex_in_points_except_i,dist] = dsearchn(points_except_i, point_i); 
+        nPointIndex_in_points = find(points == points_except_i(nPointIndex_in_points_except_i,1)); % points 행렬에서의 index로 변환
+        
+        pair = [pair;i nPointIndex_in_points]; % 결과) 가장 가까운 점 index들 pair
+    
+        % 3) 가장 가까운 점과의 거리가 NOISE_DISTANCE_TH를 초과하면 noise로 간주
+        % 즉, NOISE_DISTANCE_TH가 작을수록 더 많은 양의 point가 제거된다.
+        if dist <= NOISE_DISTANCE_TH
+            disp("");
+        elseif dist > NOISE_DISTANCE_TH 
+            % noise에 i 추가
+            noise_index = [noise_index i];
+        end
+    
+    end
+    
+    numNoise = size(noise_index,2);
+    
+    points_without_noise = []; % 결과적으로 얻고 싶은 것이 points_without_noise (noise를 제거한 point cloud)
+    
+    for i = 1:numPoints    
+        [query_i] = find(noise_index == i);
+        if (query_i) in_noise = 1; % if index i is "in" noise_index, in_noise is 1
+        else in_noise = 0; % if index i is "not in" noise_index, in_noise is 0
+        end
+        
+        if in_noise == 1
+            continue
+        elseif in_noise == 0
+            points_without_noise = [points_without_noise; points(i,:)]; % x,y
+        end
+    end
+    numWithoutNoisePoints = size(points_without_noise,1); 
 
     %% 4-3-2) Hierarchical clustering
-    Z = linkage(points,'ward'); % Ward's method
+    Z = linkage(points_without_noise,'ward'); % Ward's method
     %dendrogram(Z) % 여기서 이걸 하면 이 figure가 k개만큼 생성된다.. for문 밖으로 빠져나왔을 때 넣기 
     T = cluster(Z,'Maxclust',N_GROUP); % 최대 N_GROUP개의 그룹 % 행(가로축): index of points, 값: cluster group number
-    gscatter(points(:,1),points(:,2),T) % 그룹별로 색이 지정된 마커를 사용하여 산점도 Plot 그리기
+    gscatter(points_without_noise(:,1),points_without_noise(:,2),T) % 그룹별로 색이 지정된 마커를 사용하여 산점도 Plot 그리기
     set(gcf,'Color','w')
     xlabel('X[m]','FontSize',17,'fontname','times new roman')
     ylabel('Y[m]','FontSize',17,'fontname','times new roman')
@@ -130,10 +183,10 @@ for k = 1:numPose_optitrack
     axis equal
     box off
     hold on;
-    %figure;
 
-    cluster_all_index = zeros(numPoints,N_GROUP); %initialization
-    for i = 1:numPoints
+    cluster_all_index = zeros(numWithoutNoisePoints,N_GROUP); %initialization
+
+    for i = 1:numWithoutNoisePoints
         cluster_all_index(i,T(i)) = i; % 행(가로축): index of points, 열(세로축): cluster group number
     end
 
@@ -148,7 +201,7 @@ for k = 1:numPose_optitrack
         points_cluster = zeros(num_cluster_index,2); % initialization
         
         for j = 1:num_cluster_index
-            points_cluster(j,:) = [points(cluster_index(j),1) points(cluster_index(j),2)]; % convert index number to x,y 2D points
+            points_cluster(j,:) = [points_without_noise(cluster_index(j),1) points_without_noise(cluster_index(j),2)]; % convert index number to x,y 2D points
         end
     
         % struct 구조로 cluster 정보 저장
@@ -157,11 +210,11 @@ for k = 1:numPose_optitrack
         clusterPointStruct(i).numPointsInGroup = num_cluster_index; % 그 그룹에 들어있는 점들의 개수
         clusterPointStruct(i).pointsXY = points_cluster; % 그 그룹에 들어있는 점들의 x,y 좌표 (points_without_noise 에서의 인덱스)
        
-        if num_cluster_index > 5
+        if num_cluster_index < 50 
+            continue % 아무것도 하지 않고 for 반복문 처음으로 돌아감
+        else % point가 50개 이상 모이면 벽으로 간주함
             %% RANSAC - line fitting 
-            % Figure 4)
-            %plot_ransac(points_cluster) % cluster 된 points 그룹끼리 RANSAC (line fitting) & plane 으로 만들어줌
-            
+
             save pointcloud_cluster_1x2.mat points_cluster;
             load pointcloud_cluster_1x2.mat
         
@@ -170,12 +223,11 @@ for k = 1:numPose_optitrack
             % the fit funciton, and the distance evaluation function.
             % Call ransac to run the MSAC algorithm.
             sampleSize = 2; % minimum sample size from data that is required by fitFcn, specified as a positive scalar integer.
-            %MAX_DISTANCE_RANSAC = 0.07; % max allowable distance for inliers (positive scalar) ************************
-        
-            fitLineFcn = @(points) polyfit(points(:,1),points(:,2),1); % fit function using polyfit
+
+            fitLineFcn = @(points_cluster) polyfit(points_cluster(:,1),points_cluster(:,2),1); % fit function using polyfit
             
             % distance evaluation function
-            evalLineFcn = @(model, points) sum((points(:, 2) - polyval(model, points(:,1))).^2,2);
+            evalLineFcn = @(model, points_cluster) sum((points_cluster(:, 2) - polyval(model, points_cluster(:,1))).^2,2);
         
             % inlierIdx: logical 1D array (num_cluster_index x 1), (1: inlier, 0: outlier)
             [modelRANSAC, inlierIdx] = ransac(points_cluster,fitLineFcn,evalLineFcn,sampleSize,MAX_DISTANCE_RANSAC); % do RANSAC
@@ -184,36 +236,96 @@ for k = 1:numPose_optitrack
             modelInliers = polyfit(points_cluster(inlierIdx,1),points_cluster(inlierIdx,2),1);
         
             % Display the final fit line. This is robust to the outliers that ransac
-            % identified and ignored.
-        
+            % identified and ignored.        
             inlierPts = points_cluster(inlierIdx,:); % inlier points in points_cluster
-            x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line
-            y = modelInliers(1)*x + modelInliers(2); % y = ax + b, slope: modelInliers(1)
-        
+%             x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line % refit버전으로 다시 정해야 한다.
+%                 % inlierPts 대신 point_cluster 사용하면 line이 갑자기 너무 길어지기도 한다.
+%                 % (그냥 inlierPts 사용하자.)
+%             y = modelInliers(1)*x + modelInliers(2); % y = ax + b, slope: modelInliers(1) % refit버전으로 다시 정해야 한다. 
+
             % middle point x, y value
             middle_x = (min(inlierPts(:,1))+ max(inlierPts(:,1)))/2;
             middle_y = modelInliers(1)*middle_x + modelInliers(2);
         
             % struct 구조로 line 정보 저장
-            clusterLineStruct(i).groupNumber = i; % cluster group number
-            clusterLineStruct(i).inlierPoints = inlierPts; % 그 그룹에서 inlier에 해당하는 점들의 x,y 좌표
-            clusterLineStruct(i).modelInliers = modelInliers; % RANSAC으로 그린 line의 기울기(modelInliers(1)) 및 y 절편(modelInliers(2))
-            clusterLineStruct(i).middlePoint = [middle_x middle_y];
+            clusterRANSACLineStruct(i).groupNumber = i; % cluster group number
+            clusterRANSACLineStruct(i).inlierPoints = inlierPts; % 해당 그룹에서 inlier에 해당하는 점들의 x,y 좌표
+            clusterRANSACLineStruct(i).modelInliers = modelInliers; % RANSAC으로 그린 line의 기울기(modelInliers(1)) 및 y 절편(modelInliers(2))
+            clusterRANSACLineStruct(i).middlePoint = [middle_x middle_y];
            
-            % line visualization
-            plot(x, y, 'k-', 'LineWidth',2) % RANSAC (line fitting)
+            %% Refit slopes - Manhattan frame (MF)
+
+            slope_line = clusterRANSACLineStruct(i).modelInliers(1); % RANSAC line fitting으로 얻은 line의 기울기
+
+            if angleBetweenTwo3DVectors(MF_X, slope_line) < 30
+                % test 용으로 그냥 숫자 넣었음 바꿔야 된다!! *******************
+                refittedSlope = 0.001; % MF X축과 평행관계로 refit
+                walls(i).alignment = 'x';
+            else
+                % test 용으로 그냥 숫자 넣었음 바꿔야 된다!! *******************
+                refittedSlope = 9999; % MF Y축과 평행관계로 refit
+                walls(i).alignment = 'y';
+            end
+            
+            walls(i).refitSlope = refittedSlope;
+
+            % ax + by + c = 0
+            % refittedSlope*x - y + {middle_y - (refittedSlope*middle_x)} = 0
+            a = refittedSlope;
+            b = -1;
+            c = clusterRANSACLineStruct(i).middlePoint(2)-(walls(i).refitSlope*clusterRANSACLineStruct(i).middlePoint(1));
+            walls(i).lineABC = [a b c];
+
+            if walls(i).alignment == 'x'
+                x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line % refit버전으로 다시 정해야 한다.
+                y = walls(i).lineABC(1)*x + walls(i).lineABC(3);
+            elseif walls(i).alignment == 'y'
+                x = (y - walls(i).lineABC(3))/walls(i).lineABC(1);
+                y = [min(inlierPts(:,2)) max(inlierPts(:,2))];
+            end
+
+            %% Visualization - plot the refitted line
+            plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
+            % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
+            %hold on;
+            % 여기서는 MF 기울기 맞춰준 line으로 plot하기
+            % 그러려면 x,y 다시 정해줘야 한다. plot(x, y, 'k-', 'LineWidth',2)
+            % 그런데 이 refitted line을 계속 (누적해서) visualization 하다가 조건이 맞아서 합쳐지면 기존 것 없앰 
+
+
+            figure(2); 
+            plot(x,y,'k-','LineWidth',4)
+            xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+            ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+            set(gcf,'Color','w')
+            set(gca,'FontSize',15,'fontname','times new roman')
+            axis equal
             hold on;
-        else
-            continue
         end
     end
-%%
     refresh; pause(0.01); k
-
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 5) Plot - Eliminating noisy points
+figure;
+plot(points(:,1),points(:,2),'.'); % 모든 점들 plot
+set(gcf,'Color','w')
+axis equal
+hold on
+for i = 1:numNoise
+    plot(points(noise_index(i),1),points(noise_index(i),2),'*g') % 모든 noise 점들 plot
+    set(gcf,'Color','w')
+    axis equal
+end
+legend('All Points','Noisy Points')
+xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+set(gcf,'Color','w')
+set(gca,'FontSize',15,'fontname','times new roman')
 
-%% 5) Plot Results (trajectory and point cloud)
+
+%% 6) Plot Results (trajectory and point cloud)
 
 % plot Crazyflie motion estimation results (Figure 2)
 figure;
@@ -234,7 +346,7 @@ axis equal;
 plot_inertial_frame(0.5); legend('Optitrack','Point cloud: Optitrack', 'wall'); axis equal; view(26, 73);
 %xlabel('x [m]','fontsize',10); ylabel('y [m]','fontsize',10); zlabel('z [m]','fontsize',10); 
 
-gscatter(points(:,1),points(:,2),T) % 그룹별로 색이 지정된 마커를 사용하여 산점도 Plot 그리기
+gscatter(points_without_noise(:,1),points_without_noise(:,2),T) % 그룹별로 색이 지정된 마커를 사용하여 산점도 Plot 그리기
 set(gcf,'Color','w')
 xlabel('X[m]','FontSize',17,'fontname','times new roman')
 ylabel('Y[m]','FontSize',17,'fontname','times new roman')
