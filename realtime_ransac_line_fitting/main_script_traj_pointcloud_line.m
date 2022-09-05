@@ -1,7 +1,5 @@
 % -----------------------------------------------------------------------------------------------------------------------
-% Original source code : "https://github.com/PyojinKim/ARKit-Data-Logger/tree/master/Visualization"
-% 
-% Revised by Eunju Jeong (eunju0316@sookmyung.ac.kr)
+% Author : Eunju Jeong (eunju0316@sookmyung.ac.kr)
 % 
 % input data  : 1) Crazyflie_6DoF_pose.txt 
 %                  (unixTimeStamp, r11, r12, r13, tx[m], r21, r22, r23, ty[m], r31, r32, r33, tz[m])
@@ -78,7 +76,7 @@ fitted_point_accumulate = [];
 %% * Plot trajectory, point cloud, line (moving)
 
 % Define Manhattan frame (MF)
-MF_X = [1;0;0]; MF_Y = [0;1;0]; MF_Z = [0;0;1];
+MF_X = [1;0.0012;0.000824]; MF_Y = [-0.0012;1;-0.0015]; MF_Z = [-0.000826;0.0015;1];
 MF = [MF_X MF_Y MF_Z];
 
 % 1) play 3D moving trajectory of Crazyflie pose (Figure 10)
@@ -86,7 +84,7 @@ figure(1);
 figure(2);
 
 %for k = 1:numPose_optitrack
-for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
+for k = 1: 150 %52일 때 line이 처음 생성됨
     figure(1); cla;
 
     %% draw moving trajectory (optitrack)
@@ -216,12 +214,14 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
        
         %% 2-1-1) line fitting (RANSAC)
         if num_cluster_index < 50 
-            continue % 아무것도 하지 않고 for 반복문 처음으로 돌아감
+            walls_k(i).alignment = [];
+            walls_k(i).lineABC = [];
+            %continue; %for 반복문 처음으로 돌아감
         else 
             % point가 50개 이상 모이면 벽으로 간주함
             % RANSAC - line fitting 
 
-            fitted_point_accumulate = [fitted_point_accumulate; points_cluster]; %************* 다시 연구해보기.
+            %fitted_point_accumulate = [fitted_point_accumulate; points_cluster]; %************* 다시 연구해보기.
 
             save pointcloud_cluster_1x2.mat points_cluster;
             load pointcloud_cluster_1x2.mat
@@ -256,66 +256,53 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
             clusterRANSACLineStruct(i).inlierPoints = inlierPts; % 해당 그룹에서 inlier에 해당하는 점들의 x,y 좌표
             clusterRANSACLineStruct(i).modelInliers = modelInliers; % RANSAC으로 그린 line의 기울기(modelInliers(1)) 및 y 절편(modelInliers(2))
             clusterRANSACLineStruct(i).middlePoint = [middle_x middle_y];
+            clusterRANSACLineStruct(i).numPoints = num_cluster_index; % 해당 그룹에 해당하는 point의 개수
            
             %% Refit slopes - Manhattan frame (MF)
 
+            % Manhattan frame의 X축과의 각도 차이가 30도 미만이면 X축과 평행하도록 기울기 재조정
             slope_line = clusterRANSACLineStruct(i).modelInliers(1); % RANSAC line fitting으로 얻은 line의 기울기
 
             if angleBetweenTwo3DVectors(MF_X, slope_line) < 30 % [deg]
-                % test 용으로 그냥 숫자 넣었음 바꿔야 된다!! *******************
-                refittedSlope = 0.001; % MF X축과 평행관계로 refit
-                walls(i).alignment = 'y'; % y축과 수직
+                refittedSlope = MF_X(2)/MF_X(1); % MF X축과 평행관계로 refit
+                walls_k(i).alignment = 'y'; % y축과 수직
+                % 0으로 나눌 경우의 예외처리는 안 했음.
             else
-                % test 용으로 그냥 숫자 넣었음 바꿔야 된다!! *******************
-                refittedSlope = 9999; % MF Y축과 평행관계로 refit
-                walls(i).alignment = 'x'; % x축과 수직
-            end
-            
-            walls(i).refitSlope = refittedSlope;
+                refittedSlope = -1/(MF_X(2)/MF_X(1)); % MF Y축과 평행관계로 refit (MF X축과 수직)
+                walls_k(i).alignment = 'x'; % x축과 수직
+                % 0으로 나눌 경우의 예외처리는 안 했음.
+            end  
 
-            % ax + by + c = 0
+            % refitted line --> ax + by + c = 0
             % refittedSlope*x - y + {middle_y - (refittedSlope*middle_x)} = 0
             a = refittedSlope;
             b = -1;
-            c = clusterRANSACLineStruct(i).middlePoint(2)-(walls(i).refitSlope*clusterRANSACLineStruct(i).middlePoint(1));
-            walls(i).lineABC = [a b c];
+            c = clusterRANSACLineStruct(i).middlePoint(2)-(refittedSlope*clusterRANSACLineStruct(i).middlePoint(1));
+            walls_k(i).lineABC = [a b c];
 
-            if walls(i).alignment == 'y' % y축과 수직 (즉, x축과 평행)
+            if walls_k(i).alignment == 'y' % y축과 수직 (즉, x축과 평행)
                 x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line % refit버전으로 다시 정해야 한다.
-                y = walls(i).lineABC(1)*x + walls(i).lineABC(3);
-            elseif walls(i).alignment == 'x' % x축과 수직 (즉, y축과 평행)
-                x = (y - walls(i).lineABC(3))/walls(i).lineABC(1);
+                y = walls_k(i).lineABC(1)*x + walls_k(i).lineABC(3);
+            elseif walls_k(i).alignment == 'x' % x축과 수직 (즉, y축과 평행)
+                x = (y - walls_k(i).lineABC(3))/walls_k(i).lineABC(1);
                 y = [min(inlierPts(:,2)) max(inlierPts(:,2))];
             end
-            % 지금 walls 저장되는게 조금 이상하다. 누적돼서 찍히는 것 같으면서도 아님. 전혀 다른 두 clster가
-            % 같은 lineABC를 갖기도 함. (k = 1:100 까지 했을 때 그룹2 와 그룹4)
 
-            %% Visualization - plot the refitted line
-%             plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
-%             % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
-%             hold on;
+            % Visualization - plot the refitted line
+            plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
+            % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
+            hold on;
 
-%             figure(2); % only plot walls
-%             plot(x,y,'k-','LineWidth',2)
-%             xlabel('X[m]','FontSize',15,'fontname','times new roman') 
-%             ylabel('Y[m]','FontSize',15,'fontname','times new roman')
-%             set(gcf,'Color','w')
-%             set(gca,'FontSize',15,'fontname','times new roman')
-%             axis equal
-%             hold on;
+            figure(2); % only plot walls
+            plot(x,y,'k-','LineWidth',2)
+            xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+            ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+            set(gcf,'Color','w')
+            set(gca,'FontSize',15,'fontname','times new roman')
+            axis equal
+            hold on; % 이걸 해야 누적돼서 그려짐
+            
         end
-        plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
-        % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
-        hold on;
-
-%         figure(2); % only plot walls
-%         plot(x,y,'k-','LineWidth',2)
-%         xlabel('X[m]','FontSize',15,'fontname','times new roman') 
-%         ylabel('Y[m]','FontSize',15,'fontname','times new roman')
-%         set(gcf,'Color','w')
-%         set(gca,'FontSize',15,'fontname','times new roman')
-%         axis equal
-%         hold on; % 이걸 해야 누적돼서 그려짐
     end
     refresh; pause(0.01); k
 end
