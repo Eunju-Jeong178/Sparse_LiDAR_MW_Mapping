@@ -25,7 +25,7 @@ delimiter = ' ';
 headerlinesIn = 1;
 milliSecondToSecond = 1000;
 
-%% 1) Parse Crazyflie 6 DoF pose data by Optitrack
+%% * Parse Crazyflie 6 DoF pose data by Optitrack
 
 % parsing Crazyflie(CF) pose data text file 
 textFileDir_optitrack = 'input\FlowdeckTime_Optitrack_Crazyflie_6DoF_pose.txt'
@@ -52,7 +52,7 @@ for k = 1:numPose_optitrack
     stateEsti_CF_optitrack(4:6,k) = [roll_optitrack; pitch_optitrack; yaw_optitrack];
 end
 
-%% 2) Parse Crazyflie point cloud data (1x19): Optitrack 
+%% * Parse Crazyflie point cloud data (1x19): Optitrack 
 
 % parsing Crazyflie point cloud data text file
 textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_optitrack.txt'
@@ -68,13 +68,14 @@ for k = 1:numPointCloud_Optitrack
     pointcloud_CF_Optitrack(:,k)=CFPointCloudData_Optitrack(k,:);
 end
 
-%% 3) Sparse_MW_Mapping parameter
+%% * Sparse_MW_Mapping parameter
 
 N_GROUP = 8; % the number of cluster for HC
 MAX_DISTANCE_RANSAC = 0.01; % max allowable distance for inliers (positive scalar)
 NOISE_DISTANCE_TH = 0.4; % the threshold of euclidean distance between the two points
+fitted_point_accumulate = [];
 
-%% 4) Plot trajectory, point cloud, line (moving)
+%% * Plot trajectory, point cloud, line (moving)
 
 % Define Manhattan frame (MF)
 MF_X = [1;0;0]; MF_Y = [0;1;0]; MF_Z = [0;0;1];
@@ -83,15 +84,16 @@ MF = [MF_X MF_Y MF_Z];
 % 1) play 3D moving trajectory of Crazyflie pose (Figure 10)
 figure(1);
 figure(2);
+
 %for k = 1:numPose_optitrack
-for k = 1: numPose_optitrack
+for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     figure(1); cla;
 
-    %% 4-1) draw moving trajectory (optitrack)
+    %% draw moving trajectory (optitrack)
     p_gc_CF_optitrack = stateEsti_CF_optitrack(1:3,1:k);
     plot3(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), p_gc_CF_optitrack(3,:), 'c', 'LineWidth', 2); hold on; grid on; axis equal;
 
-    %% 4-2) draw 6 direction point cloud: Optitrack
+    %% draw 6 direction point cloud: Optitrack
     sixpoint_CF_Optitrack = pointcloud_CF_Optitrack(:,1:k);
     %plot3(sixpoint_CF_Optitrack(1,:), sixpoint_CF_Optitrack(2,:), sixpoint_CF_Optitrack(3,:), 'b.'); hold on; % up point (+z)
     %plot3(sixpoint_CF_Optitrack(4,:), sixpoint_CF_Optitrack(5,:), sixpoint_CF_Optitrack(6,:), 'b.'); hold on; % down point (-z)
@@ -107,9 +109,9 @@ for k = 1: numPose_optitrack
     pgc_CF_current = T_gc_CF_optitrack{k}(1:3,4);
     plot_CF_frame(Rgc_CF_current, pgc_CF_current, 0.5, 'm'); hold on;
 
-    %% 4-3) MW_mapping (Application of ICCAS 2022)
+    %% MW_mapping (Application of ICCAS 2022)
    
-    %% 4-3-1) Find and eliminate noisy points
+    %% 1) Find and eliminate noisy points
     % 결과: points_without_noise
 
     % (timestamp 제외하고) 1x18 --> 1x2 로 변형
@@ -171,7 +173,9 @@ for k = 1: numPose_optitrack
     end
     numWithoutNoisePoints = size(points_without_noise,1); 
 
-    %% 4-3-2) Hierarchical clustering
+    %% 2) Point clustering and Line fitting
+
+    %% 2-1) Hierarchical clustering (HC)
     Z = linkage(points_without_noise,'ward'); % Ward's method
     %dendrogram(Z) % 여기서 이걸 하면 이 figure가 k개만큼 생성된다.. for문 밖으로 빠져나왔을 때 넣기 
     T = cluster(Z,'Maxclust',N_GROUP); % 최대 N_GROUP개의 그룹 % 행(가로축): index of points, 값: cluster group number
@@ -210,10 +214,14 @@ for k = 1: numPose_optitrack
         clusterPointStruct(i).numPointsInGroup = num_cluster_index; % 그 그룹에 들어있는 점들의 개수
         clusterPointStruct(i).pointsXY = points_cluster; % 그 그룹에 들어있는 점들의 x,y 좌표 (points_without_noise 에서의 인덱스)
        
+        %% 2-1-1) line fitting (RANSAC)
         if num_cluster_index < 50 
             continue % 아무것도 하지 않고 for 반복문 처음으로 돌아감
-        else % point가 50개 이상 모이면 벽으로 간주함
-            %% RANSAC - line fitting 
+        else 
+            % point가 50개 이상 모이면 벽으로 간주함
+            % RANSAC - line fitting 
+
+            fitted_point_accumulate = [fitted_point_accumulate; points_cluster]; %************* 다시 연구해보기.
 
             save pointcloud_cluster_1x2.mat points_cluster;
             load pointcloud_cluster_1x2.mat
@@ -223,7 +231,7 @@ for k = 1: numPose_optitrack
             % the fit funciton, and the distance evaluation function.
             % Call ransac to run the MSAC algorithm.
             sampleSize = 2; % minimum sample size from data that is required by fitFcn, specified as a positive scalar integer.
-
+           
             fitLineFcn = @(points_cluster) polyfit(points_cluster(:,1),points_cluster(:,2),1); % fit function using polyfit
             
             % distance evaluation function
@@ -238,10 +246,6 @@ for k = 1: numPose_optitrack
             % Display the final fit line. This is robust to the outliers that ransac
             % identified and ignored.        
             inlierPts = points_cluster(inlierIdx,:); % inlier points in points_cluster
-%             x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line % refit버전으로 다시 정해야 한다.
-%                 % inlierPts 대신 point_cluster 사용하면 line이 갑자기 너무 길어지기도 한다.
-%                 % (그냥 inlierPts 사용하자.)
-%             y = modelInliers(1)*x + modelInliers(2); % y = ax + b, slope: modelInliers(1) % refit버전으로 다시 정해야 한다. 
 
             % middle point x, y value
             middle_x = (min(inlierPts(:,1))+ max(inlierPts(:,1)))/2;
@@ -257,14 +261,14 @@ for k = 1: numPose_optitrack
 
             slope_line = clusterRANSACLineStruct(i).modelInliers(1); % RANSAC line fitting으로 얻은 line의 기울기
 
-            if angleBetweenTwo3DVectors(MF_X, slope_line) < 30
+            if angleBetweenTwo3DVectors(MF_X, slope_line) < 30 % [deg]
                 % test 용으로 그냥 숫자 넣었음 바꿔야 된다!! *******************
                 refittedSlope = 0.001; % MF X축과 평행관계로 refit
-                walls(i).alignment = 'x';
+                walls(i).alignment = 'y'; % y축과 수직
             else
                 % test 용으로 그냥 숫자 넣었음 바꿔야 된다!! *******************
                 refittedSlope = 9999; % MF Y축과 평행관계로 refit
-                walls(i).alignment = 'y';
+                walls(i).alignment = 'x'; % x축과 수직
             end
             
             walls(i).refitSlope = refittedSlope;
@@ -276,32 +280,42 @@ for k = 1: numPose_optitrack
             c = clusterRANSACLineStruct(i).middlePoint(2)-(walls(i).refitSlope*clusterRANSACLineStruct(i).middlePoint(1));
             walls(i).lineABC = [a b c];
 
-            if walls(i).alignment == 'x'
+            if walls(i).alignment == 'y' % y축과 수직 (즉, x축과 평행)
                 x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line % refit버전으로 다시 정해야 한다.
                 y = walls(i).lineABC(1)*x + walls(i).lineABC(3);
-            elseif walls(i).alignment == 'y'
+            elseif walls(i).alignment == 'x' % x축과 수직 (즉, y축과 평행)
                 x = (y - walls(i).lineABC(3))/walls(i).lineABC(1);
                 y = [min(inlierPts(:,2)) max(inlierPts(:,2))];
             end
+            % 지금 walls 저장되는게 조금 이상하다. 누적돼서 찍히는 것 같으면서도 아님. 전혀 다른 두 clster가
+            % 같은 lineABC를 갖기도 함. (k = 1:100 까지 했을 때 그룹2 와 그룹4)
 
             %% Visualization - plot the refitted line
-            plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
-            % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
-            %hold on;
-            % 여기서는 MF 기울기 맞춰준 line으로 plot하기
-            % 그러려면 x,y 다시 정해줘야 한다. plot(x, y, 'k-', 'LineWidth',2)
-            % 그런데 이 refitted line을 계속 (누적해서) visualization 하다가 조건이 맞아서 합쳐지면 기존 것 없앰 
+%             plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
+%             % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
+%             hold on;
 
-
-            figure(2); 
-            plot(x,y,'k-','LineWidth',4)
-            xlabel('X[m]','FontSize',15,'fontname','times new roman') 
-            ylabel('Y[m]','FontSize',15,'fontname','times new roman')
-            set(gcf,'Color','w')
-            set(gca,'FontSize',15,'fontname','times new roman')
-            axis equal
-            hold on;
+%             figure(2); % only plot walls
+%             plot(x,y,'k-','LineWidth',2)
+%             xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+%             ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+%             set(gcf,'Color','w')
+%             set(gca,'FontSize',15,'fontname','times new roman')
+%             axis equal
+%             hold on;
         end
+        plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
+        % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
+        hold on;
+
+%         figure(2); % only plot walls
+%         plot(x,y,'k-','LineWidth',2)
+%         xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+%         ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+%         set(gcf,'Color','w')
+%         set(gca,'FontSize',15,'fontname','times new roman')
+%         axis equal
+%         hold on; % 이걸 해야 누적돼서 그려짐
     end
     refresh; pause(0.01); k
 end
