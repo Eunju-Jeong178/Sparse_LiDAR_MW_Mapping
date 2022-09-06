@@ -8,7 +8,7 @@
 %               
 % output figure : Crazyflie 6DoF motion estimation 
 %                 & 6 directions point cloud 
-%                 & Wall clustering(Hierarchical clustering) and Line fitting(RANSAC)
+%                 & Wall clustering(Hierarchical clustering) and Line fitting
 % -----------------------------------------------------------------------------------------------------------------------
 %%
 clc;
@@ -84,7 +84,7 @@ figure(1);
 figure(2);
 
 %for k = 1:numPose_optitrack
-for k = 1: 150 %52일 때 line이 처음 생성됨
+for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     figure(1); cla;
 
     %% draw moving trajectory (optitrack)
@@ -181,6 +181,7 @@ for k = 1: 150 %52일 때 line이 처음 생성됨
     set(gcf,'Color','w')
     xlabel('X[m]','FontSize',17,'fontname','times new roman')
     ylabel('Y[m]','FontSize',17,'fontname','times new roman')
+    zlabel('Z[m]','FontSize',15,'fontname','times new roman')
     set(gca,'FontSize',17,'fontname','times new roman')
     axis equal
     box off
@@ -215,8 +216,10 @@ for k = 1: 150 %52일 때 line이 처음 생성됨
         %% 2-1-1) line fitting (RANSAC)
         if num_cluster_index < 50 
             walls_k(i).alignment = [];
-            walls_k(i).lineABC = [];
-            %continue; %for 반복문 처음으로 돌아감
+            walls_k(i).offset = [];
+            walls_k(i).score = [];
+            walls_k(i).min_max_endpoints = [];
+            continue; % for문 처음(for i = 1:N_GROUP)으로 돌아감.
         else 
             % point가 50개 이상 모이면 벽으로 간주함
             % RANSAC - line fitting 
@@ -256,13 +259,15 @@ for k = 1: 150 %52일 때 line이 처음 생성됨
             clusterRANSACLineStruct(i).inlierPoints = inlierPts; % 해당 그룹에서 inlier에 해당하는 점들의 x,y 좌표
             clusterRANSACLineStruct(i).modelInliers = modelInliers; % RANSAC으로 그린 line의 기울기(modelInliers(1)) 및 y 절편(modelInliers(2))
             clusterRANSACLineStruct(i).middlePoint = [middle_x middle_y];
-            clusterRANSACLineStruct(i).numPoints = num_cluster_index; % 해당 그룹에 해당하는 point의 개수
+            clusterRANSACLineStruct(i).score = num_cluster_index; % 해당 그룹에 속하는 point 개수
            
             %% Refit slopes - Manhattan frame (MF)
 
+            % 해당 그룹에 속하는 point 개수
+            walls_k(i).score = num_cluster_index; 
+            
             % Manhattan frame의 X축과의 각도 차이가 30도 미만이면 X축과 평행하도록 기울기 재조정
             slope_line = clusterRANSACLineStruct(i).modelInliers(1); % RANSAC line fitting으로 얻은 line의 기울기
-
             if angleBetweenTwo3DVectors(MF_X, slope_line) < 30 % [deg]
                 refittedSlope = MF_X(2)/MF_X(1); % MF X축과 평행관계로 refit
                 walls_k(i).alignment = 'y'; % y축과 수직
@@ -278,32 +283,54 @@ for k = 1: 150 %52일 때 line이 처음 생성됨
             a = refittedSlope;
             b = -1;
             c = clusterRANSACLineStruct(i).middlePoint(2)-(refittedSlope*clusterRANSACLineStruct(i).middlePoint(1));
-            walls_k(i).lineABC = [a b c];
+            offset = c/sqrt((refittedSlope^2)+1); % MF의 해당 축과의 offset(+,-)
+            walls_k(i).offset = offset;
 
             if walls_k(i).alignment == 'y' % y축과 수직 (즉, x축과 평행)
-                x = [min(inlierPts(:,1)) max(inlierPts(:,1))]; % range of x, the size of line % refit버전으로 다시 정해야 한다.
-                y = walls_k(i).lineABC(1)*x + walls_k(i).lineABC(3);
+                x = [min(points_cluster(:,1)) max(points_cluster(:,1))];
+                y = a*x + c;
+
+                x_min = min(points_cluster(:,1));
+                x_max = max(points_cluster(:,1));
+                y_min = a*x_min + c;
+                y_max = a*x_max + c;
+
+                walls_k(i).min_max_endpoints = [x_min y_min; x_max y_max];
+
             elseif walls_k(i).alignment == 'x' % x축과 수직 (즉, y축과 평행)
-                x = (y - walls_k(i).lineABC(3))/walls_k(i).lineABC(1);
-                y = [min(inlierPts(:,2)) max(inlierPts(:,2))];
+                x = (y - c)/a;
+                y = [min(points_cluster(:,2)) max(points_cluster(:,2))];
+                % inlierPts 대신 points_cluster으로 하면 noise는 제외하고 관찰된 모든 point는 커버할 수 있음.
+
+                y_min = min(points_cluster(:,2));
+                y_max = max(points_cluster(:,2));
+                x_min = (y_min - c)/a;
+                x_max = (y_max - c)/a;
+
+                walls_k(i).min_max_endpoints = [x_min y_min; x_max y_max];
             end
 
-            % Visualization - plot the refitted line
+            
+            %% Visualization - plot the refitted line
             plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
             % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
             hold on;
 
-            figure(2); % only plot walls
-            plot(x,y,'k-','LineWidth',2)
-            xlabel('X[m]','FontSize',15,'fontname','times new roman') 
-            ylabel('Y[m]','FontSize',15,'fontname','times new roman')
-            set(gcf,'Color','w')
-            set(gca,'FontSize',15,'fontname','times new roman')
-            axis equal
-            hold on; % 이걸 해야 누적돼서 그려짐
+%             figure(2); % only plot walls
+%             plot(x,y,'k-','LineWidth',2)
+%             xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+%             ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+%             set(gcf,'Color','w')
+%             set(gca,'FontSize',15,'fontname','times new roman')
+%             axis equal
+%             hold on; % 이걸 해야 누적돼서 그려짐
             
         end
     end
+
+    % 1) walls_k를 walls에 단순 누적
+    % 2) walls에서 line alignment --> 같은 alignment 끼리 offset 비교 && 가장 가까운 endpoint끼리의 거리가 일정거리 이하이면 합치기
+
     refresh; pause(0.01); k
 end
 
@@ -330,6 +357,8 @@ set(gca,'FontSize',15,'fontname','times new roman')
 
 % plot Crazyflie motion estimation results (Figure 2)
 figure;
+
+% 이 부분에 최종 walls plot하기 (hold on)처리
 
 % plot pose of Crazyflie (optitrack)
 h_Crazyflie_optitrack = plot3(stateEsti_CF_optitrack(1,:),stateEsti_CF_optitrack(2,:),stateEsti_CF_optitrack(3,:),'c','LineWidth',2); hold on; grid on;
