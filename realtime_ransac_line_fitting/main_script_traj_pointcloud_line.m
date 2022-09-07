@@ -328,8 +328,22 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
         end
     end
 
-    % 1) walls_k를 walls에 단순 누적
+    % 이제 여기까지 하면 walls_k가 완성된다.
+
+    num_walls_k = num_walls_k_initianlization; % walls_k에 있는 line 개수
+    num_walls_k_initianlization = 0;
+    
+    % To do list
+    % 1) walls_k를 walls에 단순 누적 (처음 walls는 아무 것도 없는 struct)
     % 2) walls에서 line alignment --> 같은 alignment 끼리 offset 비교 && 가장 가까운 endpoint끼리의 거리가 일정거리 이하이면 합치기
+    % 3) walls에 있는 line들 plot
+
+
+    % 1)
+    % walls_k에 아무것도 없으면 (num_walls_k == 0 이면) walls에 누적하지 않고 pass
+    % walls 에 아무것도 없으면 합치지 않고 plot하지도 않고 pass
+   
+    % 일단은 먼저 walls_k를 walls로 누적하는 것 먼저 하자. 결과는 지금까지 그려지는 모든 line이 walls에 저장된다.
 
     refresh; pause(0.01); k
 end
