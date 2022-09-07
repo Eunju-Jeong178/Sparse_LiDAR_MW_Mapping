@@ -344,6 +344,13 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     % walls 에 아무것도 없으면 합치지 않고 plot하지도 않고 pass
    
     % 일단은 먼저 walls_k를 walls로 누적하는 것 먼저 하자. 결과는 지금까지 그려지는 모든 line이 walls에 저장된다.
+    
+    for j = 1:num_walls_k
+        walls(num_walls + j).alignment = walls_k(j).alignment;
+        walls(num_walls + j).offset = walls_k(j).offset;
+        walls(num_walls + j).score = walls_k(j).score;
+        walls(num_walls + j).min_max_endpoints = walls_k(j).min_max_endpoints;
+    end
 
     refresh; pause(0.01); k
 end
