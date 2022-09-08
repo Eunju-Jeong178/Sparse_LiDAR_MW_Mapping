@@ -335,9 +335,9 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     num_walls_k_initianlization = 0;
     
     % To do list
-    % 1) walls_k를 walls에 단순 누적 (처음 walls는 아무 것도 없는 struct)
-    % 2) walls에서 line alignment --> 같은 alignment 끼리 offset 비교 && 가장 가까운 endpoint끼리의 거리가 일정거리 이하이면 합치기
-    % 3) walls에 있는 line들 plot
+    % step1) walls_k를 walls에 단순 누적 (처음 walls는 아무 것도 없는 struct)
+    % step2) walls에서 line alignment --> 같은 alignment 끼리 offset 비교 && 가장 가까운 endpoint끼리의 거리가 일정거리 이하이면 합치기
+    % step3) walls에 있는 line들 plot
 
 
     % 1)
@@ -355,11 +355,15 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
         end
     end
 
-    % step 2) walls 에 있는 line들 중에서 같은 벽에 해당하는 것끼리 합치기
+    % step2) walls 에 있는 line들 중에서 같은 벽에 해당하는 것끼리 합치기
+    % <<합칠 것들 묶기>>
     % 1) walls에서 같은 alignment끼리 묶기
     % 2) 그 중에서 offset이 비슷한 것 끼리 묶기 (pdist 같은? 그런 함수 써야겠다.)
     % 3) 그 중에서 두 line 사이의 가장 짧은 거리가 일정거리 미만인 것만 묶기 --> 그 line들을 합침
-    % 4) 이렇게 합칠 line이 모였으면 가장 처음에 찍힌 line의 offset을 절대 기준으로 삼는다. --> 매우매우 중요한 부분
+
+    % <<합쳐진 walls 만들기>>
+    % 4) 이렇게 합칠 line이 모였으면 가장 처음에 찍힌 line의 offset을 절대 기준으로 삼는다. --> 매우매우 중요한 부분!!
+    % --> 처음 offset이 정해지면 그 다음은 절대 안 변하면 됨. 계속 그 offset으로 가면 됨.
     % 5) 그 line들 중에서 (alignment가 뭐인지에 따라서) ex)x좌표가 가장 작은 것, x좌표가 가장 큰 것을 min_max_endpoint로 설정
     % 6) walls에는 그 offset과 alignment, score(이건 어쩌지..? 그냥 무시할까),min_max_endpoints 남기고 나머지는 []처리
     % 7) 모든 묶음들이 합치는 과정 완료했으면 누적할 때처럼 isempty 써서 walls에 line만 남기기 
