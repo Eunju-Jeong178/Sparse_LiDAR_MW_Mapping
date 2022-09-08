@@ -72,7 +72,7 @@ N_GROUP = 8; % the number of cluster for HC
 MAX_DISTANCE_RANSAC = 0.01; % max allowable distance for inliers (positive scalar)
 NOISE_DISTANCE_TH = 0.4; % the threshold of euclidean distance between the two points
 fitted_point_accumulate = [];
-num_walls = 0; % initialization (the number of line in 'walls')
+num_walls = 1; % initialization (the number of line in 'walls')
 
 %% * Plot trajectory, point cloud, line (moving)
 
@@ -346,12 +346,21 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
    
     % 일단은 먼저 walls_k를 walls로 누적하는 것 먼저 하자. 결과는 지금까지 그려지는 모든 line이 walls에 저장된다.
     
-    for j = 1:num_walls_k
-        walls(num_walls + j).alignment = walls_k(j).alignment;
-        walls(num_walls + j).offset = walls_k(j).offset;
-        walls(num_walls + j).score = walls_k(j).score;
-        walls(num_walls + j).min_max_endpoints = walls_k(j).min_max_endpoints;
+    for i=1:size(walls_k,2)
+        if isempty(walls_k(i).alignment) % 비어있다면
+            continue
+        else
+            walls(num_walls) = walls_k(i);
+            num_walls = num_walls+1;
+        end
     end
+
+%     for j = 1:num_walls_k
+%         walls(num_walls + j).alignment = walls_k(j).alignment;
+%         walls(num_walls + j).offset = walls_k(j).offset;
+%         walls(num_walls + j).score = walls_k(j).score;
+%         walls(num_walls + j).min_max_endpoints = walls_k(j).min_max_endpoints;
+%     end
 
     refresh; pause(0.01); k
 end
