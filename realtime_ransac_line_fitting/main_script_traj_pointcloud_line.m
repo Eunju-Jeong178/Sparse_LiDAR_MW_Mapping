@@ -355,12 +355,18 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
         end
     end
 
-%     for j = 1:num_walls_k
-%         walls(num_walls + j).alignment = walls_k(j).alignment;
-%         walls(num_walls + j).offset = walls_k(j).offset;
-%         walls(num_walls + j).score = walls_k(j).score;
-%         walls(num_walls + j).min_max_endpoints = walls_k(j).min_max_endpoints;
-%     end
+    % step 2) walls 에 있는 line들 중에서 같은 벽에 해당하는 것끼리 합치기
+    % 1) walls에서 같은 alignment끼리 묶기
+    % 2) 그 중에서 offset이 비슷한 것 끼리 묶기 (pdist 같은? 그런 함수 써야겠다.)
+    % 3) 그 중에서 두 line 사이의 가장 짧은 거리가 일정거리 미만인 것만 묶기 --> 그 line들을 합침
+    % 4) 이렇게 합칠 line이 모였으면 가장 처음에 찍힌 line의 offset을 절대 기준으로 삼는다. --> 매우매우 중요한 부분
+    % 5) 그 line들 중에서 (alignment가 뭐인지에 따라서) ex)x좌표가 가장 작은 것, x좌표가 가장 큰 것을 min_max_endpoint로 설정
+    % 6) walls에는 그 offset과 alignment, score(이건 어쩌지..? 그냥 무시할까),min_max_endpoints 남기고 나머지는 []처리
+    % 7) 모든 묶음들이 합치는 과정 완료했으면 누적할 때처럼 isempty 써서 walls에 line만 남기기 
+
+    % step 3) walls에 있는 모든 line들 plot
+    % 이건 iccas2022 코드에 했던 것 가져오기.
+
 
     refresh; pause(0.01); k
 end
