@@ -72,6 +72,7 @@ N_GROUP = 8; % the number of cluster for HC
 MAX_DISTANCE_RANSAC = 0.01; % max allowable distance for inliers (positive scalar)
 NOISE_DISTANCE_TH = 0.4; % the threshold of euclidean distance between the two points
 fitted_point_accumulate = [];
+num_walls = 0; % initialization (the number of line in 'walls')
 
 %% * Plot trajectory, point cloud, line (moving)
 
