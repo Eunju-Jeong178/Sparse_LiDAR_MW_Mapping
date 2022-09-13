@@ -339,37 +339,115 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     % step2) walls에서 line alignment --> 같은 alignment 끼리 offset 비교 && 가장 가까운 endpoint끼리의 거리가 일정거리 이하이면 합치기
     % step3) walls에 있는 line들 plot
 
-
-    % 1)
-    % walls_k에 아무것도 없으면 (num_walls_k == 0 이면) walls에 누적하지 않고 pass
     % walls 에 아무것도 없으면 합치지 않고 plot하지도 않고 pass
    
-    % 일단은 먼저 walls_k를 walls로 누적하는 것 먼저 하자. 결과는 지금까지 그려지는 모든 line이 walls에 저장된다.
-    
+    % step1) walls_k의 line들을 walls에 누적
     for i=1:size(walls_k,2)
         if isempty(walls_k(i).alignment) % 비어있다면
             continue
         else
-            walls(num_walls) = walls_k(i);
-            num_walls = num_walls+1;
+            %walls_accumulate(num_walls_accumulate) = walls_k(i);
+            walls_accumulate(num_walls_accumulate).alignment = walls_k(i).alignment;
+            walls_accumulate(num_walls_accumulate).score = walls_k(i).score;
+            walls_accumulate(num_walls_accumulate).offset = walls_k(i).offset;
+            walls_accumulate(num_walls_accumulate).min_max_endpoints = walls_k(i).min_max_endpoints;
+            walls_accumulate(num_walls_accumulate).line_index = num_walls_accumulate;
+
+            num_walls_accumulate = num_walls_accumulate+1;
         end
     end
 
-    % step2) walls 에 있는 line들 중에서 같은 벽에 해당하는 것끼리 합치기
+    % step2) walls_accumulate 에 있는 line들 중에서 같은 벽에 해당하는 것끼리 합치기
     % <<합칠 것들 묶기>>
-    % 1) walls에서 같은 alignment끼리 묶기
-    % 2) 그 중에서 offset이 비슷한 것 끼리 묶기 (pdist 같은? 그런 함수 써야겠다.)
-    % 3) 그 중에서 두 line 사이의 가장 짧은 거리가 일정거리 미만인 것만 묶기 --> 그 line들을 합침
+    % 1) walls_accumulate에서 같은 alignment끼리 묶기 (struct 형태로)
+    % output: walls_alignment_y, walls_alignment_x
+%     i_y = 1; i_x = 1; % walls_y, walls_x 만들기 위함
+%     if num_walls_accumulate == 1 % line이 없어서 아직 walls_accumulate가 생성되지 않았다면
+%         disp("");
+%     else
+%         for i=1:size(walls_accumulate,2) % walls_accumulate에 있는 line 개수 만큼
+%             if walls_accumulate(i).alignment == 'y'
+%                 walls_alignment_y(i_y).alignment = walls_accumulate(i).alignment;
+%                 walls_alignment_y(i_y).offset = walls_accumulate(i).offset;
+%                 walls_alignment_y(i_y).min_max_endpoints = walls_accumulate(i).min_max_endpoints;
+%                 walls_alignment_y(i_y).index = i_y;
+%                 i_y = i_y + 1;
+%             elseif walls_accumulate(i).alignment == 'x'
+%                 walls_alignment_x(i_x).alignment = walls_accumulate(i).alignment;
+%                 walls_alignment_x(i_x).offset = walls_accumulate(i).offset;
+%                 walls_alignment_x(i_x).min_max_endpoints = walls_accumulate(i).min_max_endpoints;
+%                 walls_alignment_x(i_x).index = i_x;
+%                 i_x = i_x + 1;
+%             end
+%         end
+%     end
 
-    % <<합쳐진 walls 만들기>>
-    % 4) 이렇게 합칠 line이 모였으면 가장 처음에 찍힌 line의 offset을 절대 기준으로 삼는다. --> 매우매우 중요한 부분!!
-    % --> 처음 offset이 정해지면 그 다음은 절대 안 변하면 됨. 계속 그 offset으로 가면 됨.
-    % 5) 그 line들 중에서 (alignment가 뭐인지에 따라서) ex)x좌표가 가장 작은 것, x좌표가 가장 큰 것을 min_max_endpoint로 설정
-    % 6) walls에는 그 offset과 alignment, score(이건 어쩌지..? 그냥 무시할까),min_max_endpoints 남기고 나머지는 []처리
-    % 7) 모든 묶음들이 합치는 과정 완료했으면 누적할 때처럼 isempty 써서 walls에 line만 남기기 
+    % 1) 같은 alignment끼리 line_index 묶기 (output: same_alignment_y, same_alignment_x)
+    same_alignment_y = []; same_alignment_x = []; % initialization
+    if num_walls_accumulate == 1 % line이 없어서 아직 walls_accumulate가 생성되지 않았다면
+        disp("");
+    else
+        for i=1:size(walls_accumulate,2) % walls_accumulate에 있는 line 개수 만큼
+            if walls_accumulate(i).alignment == 'y'
+                same_alignment_y = [same_alignment_y; walls_accumulate(i).line_index];
+            elseif walls_accumulate(i).alignment == 'x'
+                same_alignment_x = [same_alignment_x; walls_accumulate(i).line_index];
+            end
+        end
+    end
 
-    % step 3) walls에 있는 모든 line들 plot
-    % 이건 iccas2022 코드에 했던 것 가져오기.
+    % 2) 같은 alignment끼리 2개씩 한 쌍으로 묶음 --> |offset 차이| 비교를 위함
+    % for alignment 'y')
+    if size(same_alignment_y,1) == 0 || size(same_alignment_y,1) == 1 disp("")
+    else parallelLineOffset_y = nchoosek(same_alignment_y, 2); % nCr, 2개씩 묶음
+    end
+    % for alignment 'x')
+    if size(same_alignment_x,1) == 0 || size(same_alignment_x,1) == 1 disp("")
+    else parallelLineOffset_x = nchoosek(same_alignment_x, 2); % nCr, 2개씩 묶음
+    end   
+
+    % for alignment 'y')
+    if size(same_alignment_y,1) == 0 || size(same_alignment_y,1) == 1 disp("")
+    else
+        eliminate_line_alignment_y = [];
+        % 1) 같은 alignment끼리의 |offset 차이| 저장
+        for i = 1:size(parallelLineOffset_y,1)
+            line1_index = parallelLineOffset_y(i,1); line2_index = parallelLineOffset_y(i,2);
+            parallelLineOffset_y(i,3) = abs(walls_accumulate(line1_index).offset - walls_accumulate(line2_index).offset);
+            % 2) |offset 차이|가 PARALLEL_OFFSET_TH 미만이면 하나로 합침
+            if parallelLineOffset_y(i,3) <= PARALLEL_OFFSET_TH
+                 % 한 line이라도 eliminate_line_alignment_y에 있으면
+                if ismember(line1_index, eliminate_line_alignment_y) || ismember(line2_index, eliminate_line_alignment_y)
+                    continue;
+                else
+                    % 추가하기!!) 여기에서 min_max_endpoint 조정해야 한다.
+                    eliminate_line_alignment_y = [eliminate_line_alignment_y line2_index]; % 제거할 line 추가
+                end
+            else continue;
+            end
+        end % parallelLineOffset_y의 3번째 colum에 |두 line의 offset 차이| 저장
+    end
+    % for alignment 'x')
+    if size(same_alignment_x,1) == 0 || size(same_alignment_x,1) == 1 disp("")
+    else
+        eliminate_line_alignment_x = [];
+        % 1) 같은 alignment끼리의 |offset 차이| 저장
+        for i = 1:size(parallelLineOffset_x,1)
+            line1_index = parallelLineOffset_x(i,1); line2_index = parallelLineOffset_x(i,2);
+            parallelLineOffset_x(i,3) = abs(walls_accumulate(line1_index).offset - walls_accumulate(line2_index).offset);
+            % 2) |offset 차이|가 PARALLEL_OFFSET_TH 미만이면 하나로 합침
+            if parallelLineOffset_x(i,3) <= PARALLEL_OFFSET_TH
+                 % 한 line이라도 eliminate_line_alignment_x에 있으면
+                if ismember(line1_index, eliminate_line_alignment_x) || ismember(line2_index, eliminate_line_alignment_x)
+                    continue;
+                else
+                    % 추가하기!!) 여기에서 min_max_endpoint 조정해야 한다.
+                    eliminate_line_alignment_x = [eliminate_line_alignment_x line2_index]; % 제거할 line 추가
+                end
+            else continue;
+            end
+        end % parallelLineOffset_x의 3번째 colum에 |두 line의 offset 차이| 저장
+    end
 
 
     refresh; pause(0.01); k
