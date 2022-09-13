@@ -393,7 +393,7 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
                 if ismember(line1_index, eliminate_line_alignment_y) || ismember(line2_index, eliminate_line_alignment_y)
                     continue;
                 else
-                    % 추가하기!!) 여기에서 min_max_endpoint 조정해야 한다.
+                    % line1의 min_max_endpoints 조정, offset은 line1로 고정
                     line1_x1 = walls_accumulate(line1_index).min_max_endpoints(1); line1_y1 = walls_accumulate(line1_index).min_max_endpoints(3);
                     line1_x2 = walls_accumulate(line1_index).min_max_endpoints(2); line1_y2 = walls_accumulate(line1_index).min_max_endpoints(4);
                     line2_x1 = walls_accumulate(line2_index).min_max_endpoints(1); line2_x2 = walls_accumulate(line2_index).min_max_endpoints(2);
@@ -424,7 +424,7 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
                 if ismember(line1_index, eliminate_line_alignment_x) || ismember(line2_index, eliminate_line_alignment_x)
                     continue;
                 else
-                    % 추가하기!!) 여기에서 min_max_endpoint 조정해야 한다.
+                    % line1의 min_max_endpoints 조정, offset은 line1로 고정
                     line1_x1 = walls_accumulate(line1_index).min_max_endpoints(1); line1_y1 = walls_accumulate(line1_index).min_max_endpoints(3);
                     line1_x2 = walls_accumulate(line1_index).min_max_endpoints(2); line1_y2 = walls_accumulate(line1_index).min_max_endpoints(4);
                     line2_y1 = walls_accumulate(line2_index).min_max_endpoints(3); line2_y2 = walls_accumulate(line2_index).min_max_endpoints(4);
