@@ -372,7 +372,7 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
         num_walls_accumulate = num_walls_accumulate+1;
     end
 
-    % (여기서부터는 매번 처음부터 끝까지 nCr 시행) --> 나중에 바꿔보기
+    % (여기서부터는 매번 처음부터 끝까지 nCr 시행) --> 나중에 바꿔보기 *************
   
 
     % for alignment 'y')
