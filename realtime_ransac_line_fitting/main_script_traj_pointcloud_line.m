@@ -89,7 +89,7 @@ figure(1);
 figure(2);
 
 %for k = 1:numPose_optitrack
-for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
+for k = 1: 200 %51일 때 line이 처음 생성됨
     figure(1); cla;
 
     %% draw moving trajectory (optitrack)
@@ -386,7 +386,7 @@ for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
             % 3) 같은 alignment끼리 2개씩 한 쌍으로 묶음 (nCr) --> |offset 차이| 비교를 위함  
             parallelLineOffset_y = nchoosek(same_alignment_y, 2); % nCr, 2개씩 묶음
     
-            eliminate_line_alignment_y = []; alive_line_alignment_y = [];
+            eliminate_line_alignment_y = []; alive_line_alignment_y = []; num_eliminate_line_alignment_y = 0;
             % 4) 같은 alignment끼리의 |offset 차이| 저장
             for i = 1:size(parallelLineOffset_y,1)
                 line1_index = parallelLineOffset_y(i,1); line2_index = parallelLineOffset_y(i,2);
@@ -405,7 +405,10 @@ for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
                         walls_accumulate(line1_index).min_max_endpoints = [min(line1_x1,line2_x1),line1_y1;max(line1_x2,line2_x2),line1_y2]; % x좌표 조정
                         
                         eliminate_line_alignment_y = [eliminate_line_alignment_y line2_index]; % 제거할 line 추가
-                        alive_line_alignment_y = [alive_line_alignment_y line1_index]; alive_line_alignment_y = unique(alive_line_alignment_y);
+                        num_eliminate_line_alignment_y = num_eliminate_line_alignment_y + 1;
+                        alive_line_alignment_y = [alive_line_alignment_y line1_index]; alive_line_alignment_y = unique(alive_line_alignment_y); % 유지할 line 추가
+                    
+                        walls_accumulate() = [];
                     end
                 else continue; % |offset 차이|가 PARALLEL_OFFSET_TH 이상이면 다른 벽으로 취급하고 합치지 않음
                 end
@@ -417,7 +420,7 @@ for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
             % 3) 같은 alignment끼리 2개씩 한 쌍으로 묶음 --> |offset 차이| 비교를 위함 
             parallelLineOffset_x = nchoosek(same_alignment_x, 2); % nCr, 2개씩 묶음
     
-            eliminate_line_alignment_x = []; alive_line_alignment_x = [];
+            eliminate_line_alignment_x = []; alive_line_alignment_x = []; num_eliminate_line_alignment_x = 0;
             % 4) 같은 alignment끼리의 |offset 차이| 저장
             for i = 1:size(parallelLineOffset_x,1)
                 line1_index = parallelLineOffset_x(i,1); line2_index = parallelLineOffset_x(i,2);
@@ -436,6 +439,7 @@ for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
                         walls_accumulate(line1_index).min_max_endpoints = [line1_x1,min(line1_y1,line2_y1);line1_x2,max(line1_y2,line2_y2)]; % x좌표 조정
                         
                         eliminate_line_alignment_x = [eliminate_line_alignment_x line2_index]; % 제거할 line 추가
+                        num_eliminate_line_alignment_x = num_eliminate_line_alignment_x + 1;
                         alive_line_alignment_x = [alive_line_alignment_x line1_index]; alive_line_alignment_x = unique(alive_line_alignment_x);
                     end
                 else continue;
@@ -443,6 +447,7 @@ for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
             end 
         end
         
+
         
     
         % walls_accumulate에서 eliminate_line_alignment_x, eliminate_line_alignment_y 에 있는 line들 제거
