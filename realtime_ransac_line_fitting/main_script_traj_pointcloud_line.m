@@ -1,5 +1,5 @@
 % -----------------------------------------------------------------------------------------------------------------------
-% Author : Eunju Jeong (eunju0316@sookmyung.ac.kr)
+% Author : Eunju Jeong (eunju0316@sookmyung.ac.kr) 
 % 
 % input data  : 1) Crazyflie_6DoF_pose.txt 
 %                  (unixTimeStamp, r11, r12, r13, tx[m], r21, r22, r23, ty[m], r31, r32, r33, tz[m])
@@ -68,9 +68,9 @@ end
 
 %% * Sparse_MW_Mapping parameter
 
-N_GROUP = 8; % the number of cluster for HC
+N_GROUP = 4; % the number of cluster for HC
 MAX_DISTANCE_RANSAC = 0.01; % max allowable distance for inliers (positive scalar)
-NOISE_DISTANCE_TH = 0.4; % the threshold of euclidean distance between the two points
+NOISE_DISTANCE_TH = 0.1; % the threshold of euclidean distance between the two points
 fitted_point_accumulate = [];
 num_walls_accumulate = 1; % initialization (the number of line in 'walls_accumulate')
 num_walls_k_initianlization = 0; % walls_k에 저장된 line 개수
@@ -89,7 +89,7 @@ figure(1);
 figure(2);
 
 %for k = 1:numPose_optitrack
-for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
+for k = 1: numPose_optitrack %51일 때 line이 처음 생성됨
     figure(1); cla;
 
     %% draw moving trajectory (optitrack)
@@ -102,8 +102,8 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     %plot3(sixpoint_CF_Optitrack(4,:), sixpoint_CF_Optitrack(5,:), sixpoint_CF_Optitrack(6,:), 'b.'); hold on; % down point (-z)
     plot3(sixpoint_CF_Optitrack(7,:), sixpoint_CF_Optitrack(8,:), sixpoint_CF_Optitrack(9,:), 'b.'); hold on; % left point (+y)
     plot3(sixpoint_CF_Optitrack(10,:), sixpoint_CF_Optitrack(11,:), sixpoint_CF_Optitrack(12,:), 'b.'); hold on; % right point (-y)
-    plot3(sixpoint_CF_Optitrack(13,:), sixpoint_CF_Optitrack(14,:), sixpoint_CF_Optitrack(15,:), 'b.'); hold on; % front point (+x)
-    plot3(sixpoint_CF_Optitrack(16,:), sixpoint_CF_Optitrack(17,:), sixpoint_CF_Optitrack(18,:), 'b.'); hold on; % back point (-x)
+    %plot3(sixpoint_CF_Optitrack(13,:), sixpoint_CF_Optitrack(14,:), sixpoint_CF_Optitrack(15,:), 'b.'); hold on; % front point (+x)
+    %plot3(sixpoint_CF_Optitrack(16,:), sixpoint_CF_Optitrack(17,:), sixpoint_CF_Optitrack(18,:), 'b.'); hold on; % back point (-x)
     axis equal; hold on;
   
     %% draw camera body and frame (optitrack)
@@ -118,7 +118,8 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     % 결과: points_without_noise
 
     % (timestamp 제외하고) 1x18 --> 1x2 로 변형
-    points = [CFPointCloudData_Optitrack(1:k,7:8); CFPointCloudData_Optitrack(1:k,10:11); CFPointCloudData_Optitrack(1:k,13:14); CFPointCloudData_Optitrack(1:k,16:17)];
+    %points = [CFPointCloudData_Optitrack(1:k,7:8); CFPointCloudData_Optitrack(1:k,10:11); CFPointCloudData_Optitrack(1:k,13:14); CFPointCloudData_Optitrack(1:k,16:17)];
+    points = [CFPointCloudData_Optitrack(1:k,7:8); CFPointCloudData_Optitrack(1:k,10:11)];    
     %--------------
     % x,y (left)
     % x,y (right)
@@ -179,267 +180,287 @@ for k = 1: numPose_optitrack %52일 때 line이 처음 생성됨
     %% 2) Point clustering and Line fitting
 
     %% 2-1) Hierarchical clustering (HC)
-    Z = linkage(points_without_noise,'ward'); % Ward's method
-    %dendrogram(Z) % 여기서 이걸 하면 이 figure가 k개만큼 생성된다.. for문 밖으로 빠져나왔을 때 넣기 
-    T = cluster(Z,'Maxclust',N_GROUP); % 최대 N_GROUP개의 그룹 % 행(가로축): index of points, 값: cluster group number
-    gscatter(points_without_noise(:,1),points_without_noise(:,2),T) % 그룹별로 색이 지정된 마커를 사용하여 산점도 Plot 그리기
-    set(gcf,'Color','w')
-    xlabel('X[m]','FontSize',17,'fontname','times new roman')
-    ylabel('Y[m]','FontSize',17,'fontname','times new roman')
-    zlabel('Z[m]','FontSize',15,'fontname','times new roman')
-    set(gca,'FontSize',17,'fontname','times new roman')
-    axis equal
-    box off
-    hold on;
+    
+    if size(points_without_noise,1) < 2
+        continue
+    else
+        Z = linkage(points_without_noise,'ward'); % Ward's method
+        %dendrogram(Z) % 여기서 이걸 하면 이 figure가 k개만큼 생성된다.. for문 밖으로 빠져나왔을 때 넣기 
+        T = cluster(Z,'Maxclust',N_GROUP); % 최대 N_GROUP개의 그룹 % 행(가로축): index of points, 값: cluster group number
+        gscatter(points_without_noise(:,1),points_without_noise(:,2),T) % 그룹별로 색이 지정된 마커를 사용하여 산점도 Plot 그리기
+        set(gcf,'Color','w')
+        xlabel('X[m]','FontSize',17,'fontname','times new roman')
+        ylabel('Y[m]','FontSize',17,'fontname','times new roman')
+        zlabel('Z[m]','FontSize',15,'fontname','times new roman')
+        set(gca,'FontSize',17,'fontname','times new roman')
+        axis equal
+        box off
+        hold on;
 
-    cluster_all_index = zeros(numWithoutNoisePoints,N_GROUP); %initialization
-
-    for i = 1:numWithoutNoisePoints
+        cluster_all_index = zeros(numWithoutNoisePoints,N_GROUP); %initialization
+        
+        for i = 1:numWithoutNoisePoints
         cluster_all_index(i,T(i)) = i; % 행(가로축): index of points, 열(세로축): cluster group number
-    end
-
-    % cluster 1번 그룹부터 N_GORUP번 그룹 끝까지 points index가 1열로 나열됨
-    cluster_all_index_1Darray = nonzeros(cluster_all_index);
-    
-    for i = 1:N_GROUP
-        cluster_index_sparse = cluster_all_index(:,i); % 의미 없는 0이 많음
-        cluster_index = nonzeros(cluster_index_sparse); % 0이 아닌 값만 저장, the index of point per group, 이걸 얻기 위함이었음.
-    
-        num_cluster_index = size(cluster_index,1);
-        points_cluster = zeros(num_cluster_index,2); % initialization
-        
-        for j = 1:num_cluster_index
-            points_cluster(j,:) = [points_without_noise(cluster_index(j),1) points_without_noise(cluster_index(j),2)]; % convert index number to x,y 2D points
         end
+
+        % cluster 1번 그룹부터 N_GORUP번 그룹 끝까지 points index가 1열로 나열됨
+        cluster_all_index_1Darray = nonzeros(cluster_all_index);
+        
+        for i = 1:N_GROUP
+            cluster_index_sparse = cluster_all_index(:,i); % 의미 없는 0이 많음
+            cluster_index = nonzeros(cluster_index_sparse); % 0이 아닌 값만 저장, the index of point per group, 이걸 얻기 위함이었음.
+        
+            num_cluster_index = size(cluster_index,1);
+            points_cluster = zeros(num_cluster_index,2); % initialization
+            
+            for j = 1:num_cluster_index
+                points_cluster(j,:) = [points_without_noise(cluster_index(j),1) points_without_noise(cluster_index(j),2)]; % convert index number to x,y 2D points
+            end
+        
+            % struct 구조로 cluster 정보 저장
+            clusterPointStruct(i).groupNumber = i; % cluster group number
+            clusterPointStruct(i).pointsIndex = cluster_index; % 그 그룹에 들어있는 점들의 인덱스 (points_without_noise 에서의 인덱스)
+            clusterPointStruct(i).numPointsInGroup = num_cluster_index; % 그 그룹에 들어있는 점들의 개수
+            clusterPointStruct(i).pointsXY = points_cluster; % 그 그룹에 들어있는 점들의 x,y 좌표 (points_without_noise 에서의 인덱스)
+           
+            %% 2-1-1) line fitting (RANSAC)
+            if num_cluster_index < 50 
+                walls_k(i).alignment = [];
+                walls_k(i).offset = [];
+                walls_k(i).score = [];
+                walls_k(i).min_max_endpoints = [];
+                continue; % for문 처음(for i = 1:N_GROUP)으로 돌아감.
+            else 
+                % point가 50개 이상 모이면 벽으로 간주함
+                % RANSAC - line fitting 
     
-        % struct 구조로 cluster 정보 저장
-        clusterPointStruct(i).groupNumber = i; % cluster group number
-        clusterPointStruct(i).pointsIndex = cluster_index; % 그 그룹에 들어있는 점들의 인덱스 (points_without_noise 에서의 인덱스)
-        clusterPointStruct(i).numPointsInGroup = num_cluster_index; % 그 그룹에 들어있는 점들의 개수
-        clusterPointStruct(i).pointsXY = points_cluster; % 그 그룹에 들어있는 점들의 x,y 좌표 (points_without_noise 에서의 인덱스)
-       
-        %% 2-1-1) line fitting (RANSAC)
-        if num_cluster_index < 50 
-            walls_k(i).alignment = [];
-            walls_k(i).offset = [];
-            walls_k(i).score = [];
-            walls_k(i).min_max_endpoints = [];
-            continue; % for문 처음(for i = 1:N_GROUP)으로 돌아감.
-        else 
-            % point가 50개 이상 모이면 벽으로 간주함
-            % RANSAC - line fitting 
-
-            %fitted_point_accumulate = [fitted_point_accumulate; points_cluster]; %************* 다시 연구해보기.
-
-            save pointcloud_cluster_1x2.mat points_cluster;
-            load pointcloud_cluster_1x2.mat
-        
-            % Fit a line to the points using the MSAC algorithm.
-            % Define the sample size, the maximum distance for inliers,
-            % the fit funciton, and the distance evaluation function.
-            % Call ransac to run the MSAC algorithm.
-            sampleSize = 2; % minimum sample size from data that is required by fitFcn, specified as a positive scalar integer.
-           
-            fitLineFcn = @(points_cluster) polyfit(points_cluster(:,1),points_cluster(:,2),1); % fit function using polyfit
+                %fitted_point_accumulate = [fitted_point_accumulate; points_cluster]; %************* 다시 연구해보기.
+                num_walls_k_initianlization = num_walls_k_initianlization + 1; % line 개수 count
+    
+                save pointcloud_cluster_1x2.mat points_cluster;
+                load pointcloud_cluster_1x2.mat
             
-            % distance evaluation function
-            evalLineFcn = @(model, points_cluster) sum((points_cluster(:, 2) - polyval(model, points_cluster(:,1))).^2,2);
-        
-            % inlierIdx: logical 1D array (num_cluster_index x 1), (1: inlier, 0: outlier)
-            [modelRANSAC, inlierIdx] = ransac(points_cluster,fitLineFcn,evalLineFcn,sampleSize,MAX_DISTANCE_RANSAC); % do RANSAC
-        
-            % Refit a line to the inlier using ployfit.
-            modelInliers = polyfit(points_cluster(inlierIdx,1),points_cluster(inlierIdx,2),1);
-        
-            % Display the final fit line. This is robust to the outliers that ransac
-            % identified and ignored.        
-            inlierPts = points_cluster(inlierIdx,:); % inlier points in points_cluster
-
-            % middle point x, y value
-            middle_x = (min(inlierPts(:,1))+ max(inlierPts(:,1)))/2;
-            middle_y = modelInliers(1)*middle_x + modelInliers(2);
-        
-            % struct 구조로 line 정보 저장
-            clusterRANSACLineStruct(i).groupNumber = i; % cluster group number
-            clusterRANSACLineStruct(i).inlierPoints = inlierPts; % 해당 그룹에서 inlier에 해당하는 점들의 x,y 좌표
-            clusterRANSACLineStruct(i).modelInliers = modelInliers; % RANSAC으로 그린 line의 기울기(modelInliers(1)) 및 y 절편(modelInliers(2))
-            clusterRANSACLineStruct(i).middlePoint = [middle_x middle_y];
-            clusterRANSACLineStruct(i).score = num_cluster_index; % 해당 그룹에 속하는 point 개수
-           
-            %% Refit slopes - Manhattan frame (MF)
-
-            % 해당 그룹에 속하는 point 개수
-            walls_k(i).score = num_cluster_index; 
+                % Fit a line to the points using the MSAC algorithm.
+                % Define the sample size, the maximum distance for inliers,
+                % the fit funciton, and the distance evaluation function.
+                % Call ransac to run the MSAC algorithm.
+                sampleSize = 2; % minimum sample size from data that is required by fitFcn, specified as a positive scalar integer.
+               
+                fitLineFcn = @(points_cluster) polyfit(points_cluster(:,1),points_cluster(:,2),1); % fit function using polyfit
+                
+                % distance evaluation function
+                evalLineFcn = @(model, points_cluster) sum((points_cluster(:, 2) - polyval(model, points_cluster(:,1))).^2,2);
             
-            % Manhattan frame의 X축과의 각도 차이가 30도 미만이면 X축과 평행하도록 기울기 재조정
-            slope_line = clusterRANSACLineStruct(i).modelInliers(1); % RANSAC line fitting으로 얻은 line의 기울기
-            if angleBetweenTwo3DVectors(MF_X, slope_line) < 30 % [deg]
-                refittedSlope = MF_X(2)/MF_X(1); % MF X축과 평행관계로 refit
-                walls_k(i).alignment = 'y'; % y축과 수직
-                % 0으로 나눌 경우의 예외처리는 안 했음.
+                % inlierIdx: logical 1D array (num_cluster_index x 1), (1: inlier, 0: outlier)
+                [modelRANSAC, inlierIdx] = ransac(points_cluster,fitLineFcn,evalLineFcn,sampleSize,MAX_DISTANCE_RANSAC); % do RANSAC
+            
+                % Refit a line to the inlier using ployfit.
+                modelInliers = polyfit(points_cluster(inlierIdx,1),points_cluster(inlierIdx,2),1);
+            
+                % Display the final fit line. This is robust to the outliers that ransac
+                % identified and ignored.        
+                inlierPts = points_cluster(inlierIdx,:); % inlier points in points_cluster
+    
+                % middle point x, y value
+                middle_x = (min(inlierPts(:,1))+ max(inlierPts(:,1)))/2;
+                middle_y = modelInliers(1)*middle_x + modelInliers(2);
+            
+                % struct 구조로 line 정보 저장
+                clusterRANSACLineStruct(i).groupNumber = i; % cluster group number
+                clusterRANSACLineStruct(i).inlierPoints = inlierPts; % 해당 그룹에서 inlier에 해당하는 점들의 x,y 좌표
+                clusterRANSACLineStruct(i).modelInliers = modelInliers; % RANSAC으로 그린 line의 기울기(modelInliers(1)) 및 y 절편(modelInliers(2))
+                clusterRANSACLineStruct(i).middlePoint = [middle_x middle_y];
+                clusterRANSACLineStruct(i).score = num_cluster_index; % 해당 그룹에 속하는 point 개수
+               
+                %% Refit slopes - Manhattan frame (MF)
+    
+                % 해당 그룹에 속하는 point 개수
+                walls_k(i).score = num_cluster_index; 
+                
+                % Manhattan frame의 X축과의 각도 차이가 30도 미만이면 X축과 평행하도록 기울기 재조정
+                slope_line = clusterRANSACLineStruct(i).modelInliers(1); % RANSAC line fitting으로 얻은 line의 기울기
+                if angleBetweenTwo3DVectors(MF_X, slope_line) < 30 % [deg]
+                    refittedSlope = MF_X(2)/MF_X(1); % MF X축과 평행관계로 refit
+                    walls_k(i).alignment = 'y'; % y축과 수직
+                    % 0으로 나눌 경우의 예외처리는 안 했음.
+                else
+                    refittedSlope = -1/(MF_X(2)/MF_X(1)); % MF Y축과 평행관계로 refit (MF X축과 수직)
+                    walls_k(i).alignment = 'x'; % x축과 수직
+                    % 0으로 나눌 경우의 예외처리는 안 했음.
+                end  
+    
+                % refitted line --> ax + by + c = 0
+                % refittedSlope*x - y + {middle_y - (refittedSlope*middle_x)} = 0
+                a = refittedSlope;
+                b = -1;
+                c = clusterRANSACLineStruct(i).middlePoint(2)-(refittedSlope*clusterRANSACLineStruct(i).middlePoint(1));
+                offset = c/sqrt((refittedSlope^2)+1); % MF의 해당 축과의 offset(+,-)
+                walls_k(i).offset = offset;
+    
+                if walls_k(i).alignment == 'y' % y축과 수직 (즉, x축과 평행)
+                    x = [min(points_cluster(:,1)) max(points_cluster(:,1))];
+                    y = a*x + c;
+    
+                    x_min = min(points_cluster(:,1));
+                    x_max = max(points_cluster(:,1));
+                    y_min = a*x_min + c;
+                    y_max = a*x_max + c;
+    
+                    walls_k(i).min_max_endpoints = [x_min y_min; x_max y_max];
+    
+                elseif walls_k(i).alignment == 'x' % x축과 수직 (즉, y축과 평행)
+                    %x = (y - c)/a;
+                    y = [min(points_cluster(:,2)) max(points_cluster(:,2))];
+                    x = (y - c)/a;
+                    % inlierPts 대신 points_cluster으로 하면 noise는 제외하고 관찰된 모든 point는 커버할 수 있음.
+    
+                    y_min = min(points_cluster(:,2));
+                    y_max = max(points_cluster(:,2));
+                    x_min = (y_min - c)/a;
+                    x_max = (y_max - c)/a;
+    
+                    walls_k(i).min_max_endpoints = [x_min y_min; x_max y_max];
+                end           
+    
+                %% Visualization - plot the refitted line
+                plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
+                % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
+                hold on;
+    
+                figure(2); % only plot walls
+                plot(x,y,'k-','LineWidth',2)
+                xlabel('X[m]','FontSize',15,'fontname','times new roman') 
+                ylabel('Y[m]','FontSize',15,'fontname','times new roman')
+                set(gcf,'Color','w')
+                set(gca,'FontSize',15,'fontname','times new roman')
+                axis equal
+                hold on; % 이걸 해야 누적돼서 그려짐
+                
+            end
+        end
+        % 이제 여기까지 하면 walls_k가 완성된다.
+    
+        num_walls_k = num_walls_k_initianlization; % walls_k에 있는 line 개수
+        num_walls_k_initianlization = 0; % 다음을 위해 다시 walls_k line 개수 초기화 % 이거 주석 해제하면 지금까지 누적된 line의 총 개수 나옴
+        
+        same_alignment_y_k = []; same_alignment_x_k = [];
+        for i=1:size(walls_k,2)
+            if isempty(walls_k(i).alignment) % 비어있다면
+                continue
             else
-                refittedSlope = -1/(MF_X(2)/MF_X(1)); % MF Y축과 평행관계로 refit (MF X축과 수직)
-                walls_k(i).alignment = 'x'; % x축과 수직
-                % 0으로 나눌 경우의 예외처리는 안 했음.
-            end  
-
-            % refitted line --> ax + by + c = 0
-            % refittedSlope*x - y + {middle_y - (refittedSlope*middle_x)} = 0
-            a = refittedSlope;
-            b = -1;
-            c = clusterRANSACLineStruct(i).middlePoint(2)-(refittedSlope*clusterRANSACLineStruct(i).middlePoint(1));
-            offset = c/sqrt((refittedSlope^2)+1); % MF의 해당 축과의 offset(+,-)
-            walls_k(i).offset = offset;
-
-            if walls_k(i).alignment == 'y' % y축과 수직 (즉, x축과 평행)
-                x = [min(points_cluster(:,1)) max(points_cluster(:,1))];
-                y = a*x + c;
-
-                x_min = min(points_cluster(:,1));
-                x_max = max(points_cluster(:,1));
-                y_min = a*x_min + c;
-                y_max = a*x_max + c;
-
-                walls_k(i).min_max_endpoints = [x_min y_min; x_max y_max];
-
-            elseif walls_k(i).alignment == 'x' % x축과 수직 (즉, y축과 평행)
-                x = (y - c)/a;
-                y = [min(points_cluster(:,2)) max(points_cluster(:,2))];
-                % inlierPts 대신 points_cluster으로 하면 noise는 제외하고 관찰된 모든 point는 커버할 수 있음.
-
-                y_min = min(points_cluster(:,2));
-                y_max = max(points_cluster(:,2));
-                x_min = (y_min - c)/a;
-                x_max = (y_max - c)/a;
-
-                walls_k(i).min_max_endpoints = [x_min y_min; x_max y_max];
-            end
-
-            
-            %% Visualization - plot the refitted line
-            plot3(x, y, [0.3, 0.3], 'k-', 'LineWidth',4) % RANSAC (line fitting) % 3D ver
-            % plot(x,y,'k-','LineWidth',4) % RANSAC (line fitting) % 2D ver
-            hold on;
-
-%             figure(2); % only plot walls
-%             plot(x,y,'k-','LineWidth',2)
-%             xlabel('X[m]','FontSize',15,'fontname','times new roman') 
-%             ylabel('Y[m]','FontSize',15,'fontname','times new roman')
-%             set(gcf,'Color','w')
-%             set(gca,'FontSize',15,'fontname','times new roman')
-%             axis equal
-%             hold on; % 이걸 해야 누적돼서 그려짐
-            
-        end
-    end
-
-    % 이제 여기까지 하면 walls_k가 완성된다.
-
-    num_walls_k = num_walls_k_initianlization; % walls_k에 있는 line 개수
-    num_walls_k_initianlization = 0;
+                % 1) walls_k의 line들을 walls_accumulate에 누적
+                walls_accumulate(num_walls_accumulate).alignment = walls_k(i).alignment;
+                walls_accumulate(num_walls_accumulate).score = walls_k(i).score;
+                walls_accumulate(num_walls_accumulate).offset = walls_k(i).offset;
+                walls_accumulate(num_walls_accumulate).min_max_endpoints = walls_k(i).min_max_endpoints;
+                walls_accumulate(num_walls_accumulate).line_index = num_walls_accumulate;
     
-    same_alignment_y_k = []; same_alignment_x_k = [];
-    for i=1:size(walls_k,2)
-        if isempty(walls_k(i).alignment) % 비어있다면
-            continue
-        else
-            % 1) walls_k의 line들을 walls_accumulate에 누적
-            walls_accumulate(num_walls_accumulate).alignment = walls_k(i).alignment;
-            walls_accumulate(num_walls_accumulate).score = walls_k(i).score;
-            walls_accumulate(num_walls_accumulate).offset = walls_k(i).offset;
-            walls_accumulate(num_walls_accumulate).min_max_endpoints = walls_k(i).min_max_endpoints;
-            walls_accumulate(num_walls_accumulate).line_index = num_walls_accumulate;
-
-            % 2) 같은 alignment인 line들의 line_index 묶기 
-            if walls_accumulate(num_walls_accumulate).alignment == 'y'
-                same_alignment_y = [same_alignment_y; walls_accumulate(num_walls_accumulate).line_index];
-                %same_alignment_y_k = [same_alignment_y_k; walls_accumulate(num_walls_accumulate).line_index];
-            elseif walls_accumulate(num_walls_accumulate).alignment == 'x'
-                same_alignment_x = [same_alignment_x; walls_accumulate(num_walls_accumulate).line_index];
-                %same_alignment_x_k = [same_alignment_x_k; walls_accumulate(num_walls_accumulate).line_index];
-            end % output: same_alignment_y, same_alignment_x
-
-            %num_walls_accumulate = num_walls_accumulate+1;
+                % 2) 같은 alignment인 line들의 line_index 묶기 
+                if walls_accumulate(num_walls_accumulate).alignment == 'y'
+                    same_alignment_y = [same_alignment_y; walls_accumulate(num_walls_accumulate).line_index];
+                    %same_alignment_y_k = [same_alignment_y_k; walls_accumulate(num_walls_accumulate).line_index];
+                elseif walls_accumulate(num_walls_accumulate).alignment == 'x'
+                    same_alignment_x = [same_alignment_x; walls_accumulate(num_walls_accumulate).line_index];
+                    %same_alignment_x_k = [same_alignment_x_k; walls_accumulate(num_walls_accumulate).line_index];
+                end % output: same_alignment_y, same_alignment_x
+    
+                %num_walls_accumulate = num_walls_accumulate+1;
+            end
+    %         % for alignment 'y')
+    %         if size(same_alignment_y,1) == 0 || size(same_alignment_y,1) == 1 disp("")
+    %         else parallelLineOffset_y = nchoosek(same_alignment_y_k, 2); % nCr, 2개씩 묶음
+    %         end
+    %         % for alignment 'x')
+    %         if size(same_alignment_x,1) == 0 || size(same_alignment_x,1) == 1 disp("")
+    %         else parallelLineOffset_x = [parallelLineOffset_x; nchoosek(same_alignment_x_k, 2)]; % nCr, 2개씩 묶음
+    %         end 
+            num_walls_accumulate = num_walls_accumulate+1;
         end
-%         % for alignment 'y')
-%         if size(same_alignment_y,1) == 0 || size(same_alignment_y,1) == 1 disp("")
-%         else parallelLineOffset_y = nchoosek(same_alignment_y_k, 2); % nCr, 2개씩 묶음
+    
+        % (여기서부터는 매번 처음부터 끝까지 nCr 시행) --> 나중에 바꿔보기
+      
+    
+        % for alignment 'y')
+        if size(same_alignment_y,1) == 0 || size(same_alignment_y,1) == 1 disp("")
+        else
+            % 3) 같은 alignment끼리 2개씩 한 쌍으로 묶음 (nCr) --> |offset 차이| 비교를 위함  
+            parallelLineOffset_y = nchoosek(same_alignment_y, 2); % nCr, 2개씩 묶음
+    
+            eliminate_line_alignment_y = []; alive_line_alignment_y = [];
+            % 4) 같은 alignment끼리의 |offset 차이| 저장
+            for i = 1:size(parallelLineOffset_y,1)
+                line1_index = parallelLineOffset_y(i,1); line2_index = parallelLineOffset_y(i,2);
+                parallelLineOffset_y(i,3) = abs(walls_accumulate(line1_index).offset - walls_accumulate(line2_index).offset);
+                
+                % 5) |offset 차이|가 PARALLEL_OFFSET_TH 미만이면 하나로 합침
+                if parallelLineOffset_y(i,3) <= PARALLEL_OFFSET_TH % 여기에 가장 가까운 끝점 사이의 거리가 얼마 미만이면 합침도 &&으로 추가하기*********
+                     % 한 line이라도 eliminate_line_alignment_y에 있으면
+                    if ismember(line1_index, eliminate_line_alignment_y) || ismember(line2_index, eliminate_line_alignment_y)
+                        continue;
+                    else
+                        % line1의 min_max_endpoints 조정, offset은 line1로 고정
+                        line1_x1 = walls_accumulate(line1_index).min_max_endpoints(1); line1_y1 = walls_accumulate(line1_index).min_max_endpoints(3);
+                        line1_x2 = walls_accumulate(line1_index).min_max_endpoints(2); line1_y2 = walls_accumulate(line1_index).min_max_endpoints(4);
+                        line2_x1 = walls_accumulate(line2_index).min_max_endpoints(1); line2_x2 = walls_accumulate(line2_index).min_max_endpoints(2);
+                        walls_accumulate(line1_index).min_max_endpoints = [min(line1_x1,line2_x1),line1_y1;max(line1_x2,line2_x2),line1_y2]; % x좌표 조정
+                        
+                        eliminate_line_alignment_y = [eliminate_line_alignment_y line2_index]; % 제거할 line 추가
+                        alive_line_alignment_y = [alive_line_alignment_y line1_index]; alive_line_alignment_y = unique(alive_line_alignment_y);
+                    end
+                else continue; % |offset 차이|가 PARALLEL_OFFSET_TH 이상이면 다른 벽으로 취급하고 합치지 않음
+                end
+            end 
+        end
+        % for alignment 'x')
+        if size(same_alignment_x,1) == 0 || size(same_alignment_x,1) == 1 disp("")
+        else
+            % 3) 같은 alignment끼리 2개씩 한 쌍으로 묶음 --> |offset 차이| 비교를 위함 
+            parallelLineOffset_x = nchoosek(same_alignment_x, 2); % nCr, 2개씩 묶음
+    
+            eliminate_line_alignment_x = []; alive_line_alignment_x = [];
+            % 4) 같은 alignment끼리의 |offset 차이| 저장
+            for i = 1:size(parallelLineOffset_x,1)
+                line1_index = parallelLineOffset_x(i,1); line2_index = parallelLineOffset_x(i,2);
+                parallelLineOffset_x(i,3) = abs(walls_accumulate(line1_index).offset - walls_accumulate(line2_index).offset);
+                
+                % 5) |offset 차이|가 PARALLEL_OFFSET_TH 미만이면 하나로 합침
+                if parallelLineOffset_x(i,3) <= PARALLEL_OFFSET_TH % 여기에 가장 가까운 끝점 사이의 거리가 얼마 미만이면 합침도 &&으로 추가하기*********
+                     % 한 line이라도 eliminate_line_alignment_x에 있으면
+                    if ismember(line1_index, eliminate_line_alignment_x) || ismember(line2_index, eliminate_line_alignment_x)
+                        continue;
+                    else
+                        % line1의 min_max_endpoints 조정, offset은 line1로 고정
+                        line1_x1 = walls_accumulate(line1_index).min_max_endpoints(1); line1_y1 = walls_accumulate(line1_index).min_max_endpoints(3);
+                        line1_x2 = walls_accumulate(line1_index).min_max_endpoints(2); line1_y2 = walls_accumulate(line1_index).min_max_endpoints(4);
+                        line2_y1 = walls_accumulate(line2_index).min_max_endpoints(3); line2_y2 = walls_accumulate(line2_index).min_max_endpoints(4);
+                        walls_accumulate(line1_index).min_max_endpoints = [line1_x1,min(line1_y1,line2_y1);line1_x2,max(line1_y2,line2_y2)]; % x좌표 조정
+                        
+                        eliminate_line_alignment_x = [eliminate_line_alignment_x line2_index]; % 제거할 line 추가
+                        alive_line_alignment_x = [alive_line_alignment_x line1_index]; alive_line_alignment_x = unique(alive_line_alignment_x);
+                    end
+                else continue;
+                end
+            end 
+        end
+        
+        
+    
+        % walls_accumulate에서 eliminate_line_alignment_x, eliminate_line_alignment_y 에 있는 line들 제거
+%         if size(eliminate_line_alignment_xandy) == 0 disp("")
+%         else
+%             for i = 1:size(eliminate_line_alignment_xandy,2)
+%                 index = find()
+%             end
 %         end
-%         % for alignment 'x')
-%         if size(same_alignment_x,1) == 0 || size(same_alignment_x,1) == 1 disp("")
-%         else parallelLineOffset_x = [parallelLineOffset_x; nchoosek(same_alignment_x_k, 2)]; % nCr, 2개씩 묶음
-%         end 
-        num_walls_accumulate = num_walls_accumulate+1;
-    end
-
-    % (여기서부터는 매번 처음부터 끝까지 nCr 시행) --> 나중에 바꿔보기 *************
-  
-
-    % for alignment 'y')
-    if size(same_alignment_y,1) == 0 || size(same_alignment_y,1) == 1 disp("")
-    else
-        % 3) 같은 alignment끼리 2개씩 한 쌍으로 묶음 (nCr) --> |offset 차이| 비교를 위함  
-        parallelLineOffset_y = nchoosek(same_alignment_y, 2); % nCr, 2개씩 묶음
-
-        eliminate_line_alignment_y = []; alive_line_alignment_y = [];
-        % 4) 같은 alignment끼리의 |offset 차이| 저장
-        for i = 1:size(parallelLineOffset_y,1)
-            line1_index = parallelLineOffset_y(i,1); line2_index = parallelLineOffset_y(i,2);
-            parallelLineOffset_y(i,3) = abs(walls_accumulate(line1_index).offset - walls_accumulate(line2_index).offset);
-            
-            % 5) |offset 차이|가 PARALLEL_OFFSET_TH 미만이면 하나로 합침
-            if parallelLineOffset_y(i,3) <= PARALLEL_OFFSET_TH % 여기에 가장 가까운 끝점 사이의 거리가 얼마 미만이면 합침도 &&으로 추가하기*********
-                 % 한 line이라도 eliminate_line_alignment_y에 있으면
-                if ismember(line1_index, eliminate_line_alignment_y) || ismember(line2_index, eliminate_line_alignment_y)
-                    continue;
-                else
-                    % line1의 min_max_endpoints 조정, offset은 line1로 고정
-                    line1_x1 = walls_accumulate(line1_index).min_max_endpoints(1); line1_y1 = walls_accumulate(line1_index).min_max_endpoints(3);
-                    line1_x2 = walls_accumulate(line1_index).min_max_endpoints(2); line1_y2 = walls_accumulate(line1_index).min_max_endpoints(4);
-                    line2_x1 = walls_accumulate(line2_index).min_max_endpoints(1); line2_x2 = walls_accumulate(line2_index).min_max_endpoints(2);
-                    walls_accumulate(line1_index).min_max_endpoints = [min(line1_x1,line2_x1),line1_y1;max(line1_x2,line2_x2),line1_y2]; % x좌표 조정
-                    
-                    eliminate_line_alignment_y = [eliminate_line_alignment_y line2_index]; % 제거할 line 추가
-                    alive_line_alignment_y = [alive_line_alignment_y line1_index]; alive_line_alignment_y = unique(alive_line_alignment_y);
-                end
-            else continue; % |offset 차이|가 PARALLEL_OFFSET_TH 이상이면 다른 벽으로 취급하고 합치지 않음
-            end
-        end 
-    end
-    % for alignment 'x')
-    if size(same_alignment_x,1) == 0 || size(same_alignment_x,1) == 1 disp("")
-    else
-        % 3) 같은 alignment끼리 2개씩 한 쌍으로 묶음 --> |offset 차이| 비교를 위함 
-        parallelLineOffset_x = nchoosek(same_alignment_x, 2); % nCr, 2개씩 묶음
-
-        eliminate_line_alignment_x = []; alive_line_alignment_x = [];
-        % 4) 같은 alignment끼리의 |offset 차이| 저장
-        for i = 1:size(parallelLineOffset_x,1)
-            line1_index = parallelLineOffset_x(i,1); line2_index = parallelLineOffset_x(i,2);
-            parallelLineOffset_x(i,3) = abs(walls_accumulate(line1_index).offset - walls_accumulate(line2_index).offset);
-            
-            % 5) |offset 차이|가 PARALLEL_OFFSET_TH 미만이면 하나로 합침
-            if parallelLineOffset_x(i,3) <= PARALLEL_OFFSET_TH % 여기에 가장 가까운 끝점 사이의 거리가 얼마 미만이면 합침도 &&으로 추가하기*********
-                 % 한 line이라도 eliminate_line_alignment_x에 있으면
-                if ismember(line1_index, eliminate_line_alignment_x) || ismember(line2_index, eliminate_line_alignment_x)
-                    continue;
-                else
-                    % line1의 min_max_endpoints 조정, offset은 line1로 고정
-                    line1_x1 = walls_accumulate(line1_index).min_max_endpoints(1); line1_y1 = walls_accumulate(line1_index).min_max_endpoints(3);
-                    line1_x2 = walls_accumulate(line1_index).min_max_endpoints(2); line1_y2 = walls_accumulate(line1_index).min_max_endpoints(4);
-                    line2_y1 = walls_accumulate(line2_index).min_max_endpoints(3); line2_y2 = walls_accumulate(line2_index).min_max_endpoints(4);
-                    walls_accumulate(line1_index).min_max_endpoints = [line1_x1,min(line1_y1,line2_y1);line1_x2,max(line1_y2,line2_y2)]; % x좌표 조정
-                    
-                    eliminate_line_alignment_x = [eliminate_line_alignment_x line2_index]; % 제거할 line 추가
-                    alive_line_alignment_x = [alive_line_alignment_x line1_index]; alive_line_alignment_x = unique(alive_line_alignment_x);
-                end
-            else continue;
-            end
-        end 
-    end
+        
+   
+    
+    
+        refresh; pause(0.01); k
 
 
-    refresh; pause(0.01); k
+    end % else 끝
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
