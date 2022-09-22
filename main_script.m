@@ -130,24 +130,20 @@ for k = 1: numPose_optitrack
     %pointCloud = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12); CFPointCloudData_Optitrack(1:k,13:15); CFPointCloudData_Optitrack(1:k,16:18)];
     pointCloud = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
     pointCloud_original = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
-    % 이미 쓰인 point는 제거
     
+    % line을 만드는 데 사용된 point 제거
     if flag == 0
-        %disp("0")
     else
-        %disp("1")
-
         for i = 1:size(unique_used_inlierPts_x_accumulate,2)
             idx_unique_used_inlierPts_accumulate = [idx_unique_used_inlierPts_accumulate find(unique_used_inlierPts_x_accumulate(i)==pointCloud_original(1,:))];
         end
         idx_unique_used_inlierPts_accumulate = unique(idx_unique_used_inlierPts_accumulate);
         pointCloud(:,idx_unique_used_inlierPts_accumulate) = [];
     end
-    
-    while(true)
 
+    %%
+    while(true)
         if walls_flag == 0 % walls가 아직 생성이 안됐다면
-            disp("")
         else
             for i = 1:length(walls)
                 if walls(i).alignment == 'y'
@@ -169,6 +165,9 @@ for k = 1: numPose_optitrack
     
                         line(x_line, y_line, 'color', 'k','LineWidth', 2);
                         num_extra_line = num_extra_line + 1;
+
+                        % pointCloud에서 pointsIdxInThres 제거
+                        pointCloud(:,pointsIdxInThres) = [];
                     end
                   
 
@@ -189,8 +188,11 @@ for k = 1: numPose_optitrack
                         y_line = [ymin, ymax];
                         x_line = (y_line - (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1))))/walls(i).refittedLineModel(1); 
     
-                        line(x_line, y_line, 'color', 'm','LineWidth', 2);
+                        line(x_line, y_line, 'color', 'm','LineWidth', 2); % 이 명령 자체가 새로운 line을 생성하라는 명령 --> 이거말고 기존의 min_xy, max_xy를 업데이트 하잨
                         num_extra_line = num_extra_line + 1;
+
+                        % pointCloud에서 pointsIdxInThres 제거
+                        pointCloud(:,pointsIdxInThres) = [];
                     end 
                 end
             end
@@ -223,21 +225,7 @@ for k = 1: numPose_optitrack
             b = -1;
             c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
             refittedLineModel = [a b c];
-
-            % distance between the refitted line and the other points in pointCloud
-%             pointsIdxInThres = PointsInThres(pointCloud, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-% %             pointsIdxInThres = PointsInThres(pointCloud_original, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-% 
-%             % find end points of line model
-%             xmin = min(pointCloud(1,pointsIdxInThres));
-%             xmax = max(pointCloud(1,pointsIdxInThres));
-% 
-% %             xmin = min(pointCloud_original(1,pointsIdxInThres));
-% %             xmax = max(pointCloud_original(1,pointsIdxInThres));
-% 
-% %             xmin = min(pointCloud(1,:));
-% %             xmax = max(pointCloud(1,:));
-%             
+         
             xmin = min(pointCloud(1,lineIdx));
             xmax = max(pointCloud(1,lineIdx));
 
@@ -268,21 +256,6 @@ for k = 1: numPose_optitrack
             c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
             refittedLineModel = [a b c];
             
-
-            % distance between the refitted line and the other points in pointCloud
-%              pointsIdxInThres = PointsInThres(pointCloud, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-% %             pointsIdxInThres = PointsInThres(pointCloud_original, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-% 
-%             
-%             % find end points of line model
-%             ymin = min(pointCloud(2,pointsIdxInThres));
-%             ymax = max(pointCloud(2,pointsIdxInThres));
-% 
-% %             ymin = min(pointCloud_original(2,pointsIdxInThres));
-% %             ymax = max(pointCloud_original(2,pointsIdxInThres));
-% 
-% %             ymin = min(pointCloud(2,:));
-% %             ymax = max(pointCloud(2,:));
             
             ymin = min(pointCloud(2,lineIdx));
             ymax = max(pointCloud(2,lineIdx));
@@ -305,8 +278,8 @@ for k = 1: numPose_optitrack
         end
 
         % plot line RANSAC results 
-        %figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
-        figure(2);
+        figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
+        %figure(2);
         plot(pointCloud(1,:), pointCloud(2,:), 'bo'); hold on; grid on; axis equal;
         plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r*'); % 원래는 lineIdx
         %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
@@ -325,9 +298,11 @@ for k = 1: numPose_optitrack
         unique_used_inlierPts_x_accumulate = unique(used_inlierPts_x_accumulate);
         flag = flag + 1;
 
-        %pointCloud(:,lineIdx) = [];
         pointCloud(:,lineIdx) = [];
     end
+
+    % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH
+    % 미만이어서 walls에 추가도 안하고 plot도 안 함
 
     % 원래 찍히는 point cloud (original)
     figure(2);
