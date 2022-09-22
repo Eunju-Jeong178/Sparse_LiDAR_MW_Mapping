@@ -67,9 +67,9 @@ for k = 1:numPointCloud_Optitrack
 end
 
 %% * Manhattan frame mapping parameters
-NOISE_DISTANCE_TH = 0.1; % the threshold of euclidean distance between the two points
+
+RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
 NUM_INLIER_POINTS_TH = 50;
-lineInlierThreshold = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
 TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
 
@@ -125,10 +125,12 @@ for k = 1: numPose_optitrack
     %% 4) Manhattan World Mapping (Line fitting)
 
     % (timestamp 제외하고) 1x18 --> 1x2 로 변형
-    %pointCloud = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12); CFPointCloudData_Optitrack(1:k,13:15); CFPointCloudData_Optitrack(1:k,16:18)];
+%     pointCloud = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12); CFPointCloudData_Optitrack(1:k,13:15); CFPointCloudData_Optitrack(1:k,16:18)]';
+%     pointCloud_original = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12); CFPointCloudData_Optitrack(1:k,13:15); CFPointCloudData_Optitrack(1:k,16:18)]';
+    
     pointCloud = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
     pointCloud_original = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
-    
+
     % line을 만드는 데 사용된 point 제거
     if flag == 0
     else
@@ -196,20 +198,23 @@ for k = 1: numPose_optitrack
             end
         end
       
-        
+        %%
         % do line RANSAC  
-        [lineIdx, ~, lineModel] = detectLineRANSAC(pointCloud, lineInlierThreshold); % find inlier points and line model (a,b,c)
-            
+        [lineIdx, ~, lineModel] = detectLineRANSAC(pointCloud, RANSAC_LINE_INLIER_TH); % find inlier points and line model (a,b,c)
+         
+
         % while loop terminating condition
         if size(lineIdx,2) < NUM_INLIER_POINTS_TH % if the number of inlier points is less than the threshold, then do not build a line model
             break
         end      
+
 
         % line RANSAC으로 생성한 lineModel의 middle point
         middle_x = (min(pointCloud(1,lineIdx))+max(pointCloud(1,lineIdx)))/2;
         middle_y = (-lineModel(1)*middle_x - lineModel(3))/lineModel(2);
         middlePoint = [middle_x middle_y];
         
+
         % 1) Angle difference between line and Manhattan frame --> refit slope
         slope_line = -(lineModel(1)/lineModel(2));
         if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH %[deg]
@@ -227,7 +232,6 @@ for k = 1: numPose_optitrack
 
             x_line = [xmin, xmax];
             y_line = refitted_slope_line * x_line + (middlePoint(2) - (refitted_slope_line * middlePoint(1)));
-
 
             % walls struct field
             alignment = 'y'; % Manhattan frame(MF) Y축에 수직
@@ -274,8 +278,8 @@ for k = 1: numPose_optitrack
         end
 
         % plot line RANSAC results 
-        figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
-        %figure(2);
+        %figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
+        figure(2);
         plot(pointCloud(1,:), pointCloud(2,:), 'bo'); hold on; grid on; axis equal;
         plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r*'); % 원래는 lineIdx
         %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
