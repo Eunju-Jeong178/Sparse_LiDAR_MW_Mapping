@@ -69,7 +69,7 @@ end
 %% * Manhattan frame mapping parameters
 numNoise = [];
 NOISE_DISTANCE_TH = 0.1; % the threshold of euclidean distance between the two points
-NUM_INLIER_POINTS_TH = 30;
+NUM_INLIER_POINTS_TH = 50;
 inlierPts_num_accumulate = [];
 lineInlierThreshold = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
@@ -77,9 +77,13 @@ TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
 
 
 flag = 0;
+walls_flag = 0;
+num_extra_line = 0;
 
 used_inlierPts_x_accumulate = [];
 idx_unique_used_inlierPts_accumulate = [];
+
+walls = []; % 여기는 이제 전체 walls (MW_Map)
 
 %% * Plot trajectory, point cloud, line (moving)
 
@@ -98,6 +102,11 @@ for k = 1: numPose_optitrack
     %% 1) draw moving trajectory (optitrack)
     p_gc_CF_optitrack = stateEsti_CF_optitrack(1:3,1:k);
     plot3(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), p_gc_CF_optitrack(3,:), 'c', 'LineWidth', 2); hold on; grid on; axis equal;
+    xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
+    ylabel('Y[m]','FontSize',15,'fontname','times new roman');
+    zlabel('Z[m]','FontSize',15,'fontname','times new roman');
+    set(gcf,'Color','w');
+    set(gca,'FontSize',15,'fontname','times new roman');
 
     %% 2) draw 6 direction point cloud: Optitrack
     sixpoint_CF_Optitrack = pointcloud_CF_Optitrack(:,1:k);
@@ -126,7 +135,6 @@ for k = 1: numPose_optitrack
     if flag == 0
         %disp("0")
     else
-        unique_used_inlierPts_x_accumulate;
         %disp("1")
 
         for i = 1:size(unique_used_inlierPts_x_accumulate,2)
@@ -137,7 +145,59 @@ for k = 1: numPose_optitrack
     end
     
     while(true)
-        % do line RANSAC        
+
+        if walls_flag == 0 % walls가 아직 생성이 안됐다면
+            disp("")
+        else
+            for i = 1:length(walls)
+                if walls(i).alignment == 'y'
+                    pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+                    
+                    if isempty(pointsIdxInThres) ~=0
+                        continue;
+                    elseif isempty(pointsIdxInThres) == 0
+                        % line RANSAC으로 생성한 lineModel의 middle point
+                        middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
+                        middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
+                        middlePoint = [middle_x middle_y];
+    
+                        xmin = min(pointCloud(1,pointsIdxInThres));
+                        xmax = max(pointCloud(1,pointsIdxInThres));
+    
+                        x_line = [xmin, xmax];
+                        y_line = walls(i).refittedLineModel(1) * x_line + (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1)));
+    
+                        line(x_line, y_line, 'color', 'k','LineWidth', 2);
+                        num_extra_line = num_extra_line + 1;
+                    end
+                  
+
+                elseif walls(i).alignment == 'x'
+                    pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+                    
+                    if isempty(pointsIdxInThres) ~=0
+                        continue;
+                    elseif isempty(pointsIdxInThres) == 0
+                        % line RANSAC으로 생성한 lineModel의 middle point
+                        middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
+                        middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
+                        middlePoint = [middle_x middle_y];
+    
+                        ymin = min(pointCloud(2,pointsIdxInThres));
+                        ymax = max(pointCloud(2,pointsIdxInThres));
+    
+                        y_line = [ymin, ymax];
+                        x_line = (y_line - (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1))))/walls(i).refittedLineModel(1); 
+    
+                        line(x_line, y_line, 'color', 'm','LineWidth', 2);
+                        num_extra_line = num_extra_line + 1;
+                    end 
+                end
+            end
+        end
+      
+        
+        % do line RANSAC  
         [lineIdx, ~, lineModel] = detectLineRANSAC(pointCloud, lineInlierThreshold); % find inlier points and line model (a,b,c)
             
         % while loop terminating condition
@@ -164,20 +224,41 @@ for k = 1: numPose_optitrack
             c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
             refittedLineModel = [a b c];
 
-
             % distance between the refitted line and the other points in pointCloud
-            pointsIdxInThres = PointsInThres(pointCloud, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+%             pointsIdxInThres = PointsInThres(pointCloud, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+% %             pointsIdxInThres = PointsInThres(pointCloud_original, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+% 
+%             % find end points of line model
+%             xmin = min(pointCloud(1,pointsIdxInThres));
+%             xmax = max(pointCloud(1,pointsIdxInThres));
+% 
+% %             xmin = min(pointCloud_original(1,pointsIdxInThres));
+% %             xmax = max(pointCloud_original(1,pointsIdxInThres));
+% 
+% %             xmin = min(pointCloud(1,:));
+% %             xmax = max(pointCloud(1,:));
+%             
+            xmin = min(pointCloud(1,lineIdx));
+            xmax = max(pointCloud(1,lineIdx));
 
-
-            % find end points of line model
-            xmin = min(pointCloud(1,pointsIdxInThres));
-            xmax = max(pointCloud(1,pointsIdxInThres));
-            
             x_line = [xmin, xmax];
             y_line = refitted_slope_line * x_line + (middlePoint(2) - (refitted_slope_line * middlePoint(1)));
 
 
+            % walls struct field
+            alignment = 'y'; % Manhattan frame(MF) Y축에 수직
+            offset = c/sqrt((refitted_slope_line^2)+1);
+            n = MF_Y;
+            score = size(lineIdx,2);
+            refittedLineModel = refittedLineModel;
+           
+            % aumgent walls
+            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel)];
+            walls_flag = walls_flag + 1;
+
+        %%
         else
+
             refitted_slope_line = -1/(MF_X(2)/MF_X(1)); % MF Y축과 평행관계로 refit
 
             % middlePoint를 지나고 기울기가 refitted_slope_line인 직선으로 변경
@@ -186,82 +267,78 @@ for k = 1: numPose_optitrack
             b = -1;
             c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
             refittedLineModel = [a b c];
-
+            
 
             % distance between the refitted line and the other points in pointCloud
-            pointsIdxInThres = PointsInThres(pointCloud, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+%              pointsIdxInThres = PointsInThres(pointCloud, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+% %             pointsIdxInThres = PointsInThres(pointCloud_original, refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+% 
+%             
+%             % find end points of line model
+%             ymin = min(pointCloud(2,pointsIdxInThres));
+%             ymax = max(pointCloud(2,pointsIdxInThres));
+% 
+% %             ymin = min(pointCloud_original(2,pointsIdxInThres));
+% %             ymax = max(pointCloud_original(2,pointsIdxInThres));
+% 
+% %             ymin = min(pointCloud(2,:));
+% %             ymax = max(pointCloud(2,:));
+            
+            ymin = min(pointCloud(2,lineIdx));
+            ymax = max(pointCloud(2,lineIdx));
 
-            
-            % find end points of line model
-            ymin = min(pointCloud(2,pointsIdxInThres));
-            ymax = max(pointCloud(2,pointsIdxInThres));
-            
             y_line = [ymin, ymax];
             x_line = (y_line - (middlePoint(2) - (refitted_slope_line * middlePoint(1))))/refitted_slope_line;   
+
+
+            % walls struct field
+            alignment = 'x'; % Manhattan frame(MF) X축에 수직
+            offset = c/sqrt((refitted_slope_line^2)+1);
+            n = MF_X;
+            score = size(lineIdx,2);
+
+
+            % aumgent walls
+            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel)];
+            walls_flag = walls_flag + 1;
+
         end
 
         % plot line RANSAC results 
         %figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
         figure(2);
-        plot(pointCloud(1,:), pointCloud(2,:), 'b.'); hold on; grid on; axis equal;
-        plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r.');
-        line(x_line, y_line, 'color', 'm', 'LineWidth', 3);
-        xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
-        ylabel('Y[m]','FontSize',15,'fontname','times new roman');
-        set(gcf,'Color','w');
-        set(gca,'FontSize',15,'fontname','times new roman');
-        axis equal;
+        plot(pointCloud(1,:), pointCloud(2,:), 'bo'); hold on; grid on; axis equal;
+        plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r*'); % 원래는 lineIdx
+        %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
+
+        if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH
+            line(x_line, y_line, 'color', 'g', 'marker','s','LineWidth', 3);
+        else
+            line(x_line, y_line, 'color', 'r', 'marker','s','LineWidth', 3);
+        end
         hold on;      
         %%        
         axis([ -2.4529    5.5749   -1.1148    5.2168])       
             
-        used_inlierPts_x = [pointCloud(1,lineIdx)]; % line 만드는데 사용된 points x좌표 (inlier points)
+        used_inlierPts_x = [pointCloud(1,lineIdx)]; % 원래는 lineIdx % line 만드는데 사용된 points x좌표 (inlier points)
         used_inlierPts_x_accumulate = [used_inlierPts_x_accumulate used_inlierPts_x];
         unique_used_inlierPts_x_accumulate = unique(used_inlierPts_x_accumulate);
         flag = flag + 1;
 
+        %pointCloud(:,lineIdx) = [];
         pointCloud(:,lineIdx) = [];
     end
 
-    %figure(2); % 원래 찍히는 point cloud (original)
-    %plot(pointCloud_original(1,:), pointCloud_original(2,:), 'k.'); hold on; grid on; axis equal;
+    % 원래 찍히는 point cloud (original)
+    figure(2);
+    plot(pointCloud_original(1,:), pointCloud_original(2,:), 'k.'); hold on; grid on; axis equal;
+    xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
+    ylabel('Y[m]','FontSize',15,'fontname','times new roman');
+    set(gcf,'Color','w');
+    set(gca,'FontSize',15,'fontname','times new roman');
+
     
     % 3) line 합치기 --> plot
 
     refresh; pause(0.01); k
 end
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% 5) Plot Results (trajectory and point cloud)
-
-% % plot Crazyflie motion estimation results (Figure 2)
-% figure;
-% 
-% % plot pose of Crazyflie (optitrack)
-% h_Crazyflie_optitrack = plot3(stateEsti_CF_optitrack(1,:),stateEsti_CF_optitrack(2,:),stateEsti_CF_optitrack(3,:),'c','LineWidth',2); hold on; grid on;
-% 
-% %(point cloud plot version2: Optitrack) visualization of pointcloud_1x19 (with timestamp)
-% % scatter3(sixpoint_CF_Optitrack(1,:), sixpoint_CF_Optitrack(2,:), sixpoint_CF_Optitrack(3,:), 'b.'); hold on; % up point (+z)
-% % scatter3(sixpoint_CF_Optitrack(4,:), sixpoint_CF_Optitrack(5,:), sixpoint_CF_Optitrack(6,:), 'b.'); hold on; % down point (-z)
-% scatter3(sixpoint_CF_Optitrack(7,:), sixpoint_CF_Optitrack(8,:), sixpoint_CF_Optitrack(9,:), 'b.'); hold on; % left point (+y)
-% scatter3(sixpoint_CF_Optitrack(10,:), sixpoint_CF_Optitrack(11,:), sixpoint_CF_Optitrack(12,:), 'b.'); hold on; % right point (-y)
-% scatter3(sixpoint_CF_Optitrack(13,:), sixpoint_CF_Optitrack(14,:), sixpoint_CF_Optitrack(15,:), 'b.'); hold on; % front point (+x)
-% scatter3(sixpoint_CF_Optitrack(16,:), sixpoint_CF_Optitrack(17,:), sixpoint_CF_Optitrack(18,:), 'b.'); hold on; % back point (-x)
-% axis equal;
-% 
-% % plot inertial frame
-% plot_inertial_frame(0.5); legend('Optitrack','Point cloud: Optitrack'); axis equal; view(26, 73);
-% %xlabel('x [m]','fontsize',10); ylabel('y [m]','fontsize',10); zlabel('z [m]','fontsize',10); 
-% 
-% set(gcf,'Color','w')
-% xlabel('X[m]','FontSize',17,'fontname','times new roman')
-% ylabel('Y[m]','FontSize',17,'fontname','times new roman')
-% set(gca,'FontSize',17,'fontname','times new roman')
-% axis equal; box off; 
-% hold off;
-% 
-% % figure options
-% f = FigureRotator(gca());
