@@ -72,6 +72,7 @@ RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점
 NUM_INLIER_POINTS_TH = 50;
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
 TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
+MERGE_LINES_DISTANCE_TH = 0.1; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 
 
 flag = 0;
@@ -89,9 +90,10 @@ walls = []; % 여기는 이제 전체 walls (MW_Map)
 MF_X = [1;0.0012;0.000824]; MF_Y = [-0.0012;1;-0.0015]; MF_Z = [-0.000826;0.0015;1];
 MF = [MF_X MF_Y MF_Z];
 
-% 1) play 3D moving trajectory of Crazyflie pose (Figure 10)
+% 1) play 3D moving trajectory of Crazyflie pose
 figure(1);
 figure(2);
+%figure(3);
 
 %for k = 1:numPose_optitrack
 for k = 1: numPose_optitrack
@@ -152,19 +154,23 @@ for k = 1: numPose_optitrack
                     if isempty(pointsIdxInThres) ~=0
                         continue;
                     elseif isempty(pointsIdxInThres) == 0
-                        % line RANSAC으로 생성한 lineModel의 middle point
-                        middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
-                        middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
-                        middlePoint = [middle_x middle_y];
-    
+%                         % line RANSAC으로 생성한 lineModel의 middle point
+%                         middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
+%                         middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
+%                         middlePoint = [middle_x middle_y];
+%     
                         xmin = min(pointCloud(1,pointsIdxInThres));
                         xmax = max(pointCloud(1,pointsIdxInThres));
-    
-                        x_line = [xmin, xmax];
-                        y_line = walls(i).refittedLineModel(1) * x_line + (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1)));
-    
-                        line(x_line, y_line, 'color', 'k','LineWidth', 2);
-                        num_extra_line = num_extra_line + 1;
+%     
+%                         x_line = [xmin, xmax];
+%                         y_line = walls(i).refittedLineModel(1) * x_line + (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1)));
+%     
+%                         line(x_line, y_line, 'color', 'k','LineWidth', 2);
+%                         num_extra_line = num_extra_line + 1;
+
+                        % y는 중요하지 않음
+                        walls(i).min_xy_M = [min(xmin, walls(i).min_xy_M(1)) walls(i).min_xy_M(2)];
+                        walls(i).max_xy_M = [max(xmax, walls(i).max_xy_M(1)) walls(i).max_xy_M(2)];
 
                         % pointCloud에서 pointsIdxInThres 제거
                         pointCloud(:,pointsIdxInThres) = [];
@@ -178,18 +184,23 @@ for k = 1: numPose_optitrack
                         continue;
                     elseif isempty(pointsIdxInThres) == 0
                         % line RANSAC으로 생성한 lineModel의 middle point
-                        middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
-                        middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
-                        middlePoint = [middle_x middle_y];
+%                         middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
+%                         middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
+%                         middlePoint = [middle_x middle_y];
     
                         ymin = min(pointCloud(2,pointsIdxInThres));
                         ymax = max(pointCloud(2,pointsIdxInThres));
-    
-                        y_line = [ymin, ymax];
-                        x_line = (y_line - (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1))))/walls(i).refittedLineModel(1); 
-    
-                        line(x_line, y_line, 'color', 'm','LineWidth', 2); % 이 명령 자체가 새로운 line을 생성하라는 명령 --> 이거말고 기존의 min_xy, max_xy를 업데이트 하잨
-                        num_extra_line = num_extra_line + 1;
+%     
+%                         y_line = [ymin, ymax];
+%                         x_line = (y_line - (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1))))/walls(i).refittedLineModel(1); 
+%     
+%                         line(x_line, y_line, 'color', 'm','LineWidth', 2); % 이 명령 자체가 새로운 line을 생성하라는 명령 --> 이거말고 기존의 min_xy, max_xy를 업데이트 하잨
+%                         num_extra_line = num_extra_line + 1;
+
+                        % x는 중요하지 않음
+                        walls(i).min_xy_M = [walls(i).min_xy_M(1) min(ymin, walls(i).min_xy_M(2))];
+                        walls(i).max_xy_M = [walls(i).max_xy_M(1) max(ymax, walls(i).max_xy_M(2))];
+
 
                         % pointCloud에서 pointsIdxInThres 제거
                         pointCloud(:,pointsIdxInThres) = [];
@@ -238,11 +249,18 @@ for k = 1: numPose_optitrack
             offset = c/sqrt((refitted_slope_line^2)+1);
             n = MF_Y;
             score = size(lineIdx,2);
-            refittedLineModel = refittedLineModel;
+            refittedLineModel = refittedLineModel; % 이건 line 늘리기 때 확인용
+%             max_xy_M = [xmax a*xmax+c]; % 사실 양 끝점
+%             min_xy_M = [xmin a*xmin+c]; 
+            max_xy_M = [xmax max(pointCloud(2,lineIdx))];
+            min_xy_M = [xmin min(pointCloud(2,lineIdx))]; 
            
             % aumgent walls
-            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel)];
+            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];
             walls_flag = walls_flag + 1;
+
+            % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
+            walls_ = initializeMWMap(walls,MERGE_LINES_DISTANCE_TH);
 
         %%
         else
@@ -269,19 +287,27 @@ for k = 1: numPose_optitrack
             offset = c/sqrt((refitted_slope_line^2)+1);
             n = MF_X;
             score = size(lineIdx,2);
+            refittedLineModel = refittedLineModel; % 이건 line 늘리기 때 확인용
+%             max_xy_M = [(ymax-c)/a ymax]; % 사실 양 끝점
+%             min_xy_M = [(ymin-c)/a ymin];
+            max_xy_M = [max(pointCloud(1,lineIdx)) ymax]; 
+            min_xy_M = [min(pointCloud(1,lineIdx)) ymin];
 
 
             % aumgent walls
-            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel)];
+            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];
             walls_flag = walls_flag + 1;
+
+            % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
+            walls_ = initializeMWMap(walls, MERGE_LINES_DISTANCE_TH);
 
         end
 
         % plot line RANSAC results 
         %figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
         figure(2);
-        plot(pointCloud(1,:), pointCloud(2,:), 'bo'); hold on; grid on; axis equal;
-        plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r*'); % 원래는 lineIdx
+        plot(pointCloud(1,:), pointCloud(2,:), 'k.'); hold on; grid on; axis equal;
+        plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r.'); % 원래는 lineIdx
         %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
 
         if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH
@@ -301,19 +327,34 @@ for k = 1: numPose_optitrack
         pointCloud(:,lineIdx) = [];
     end
 
-    % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH
-    % 미만이어서 walls에 추가도 안하고 plot도 안 함
+    % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
 
     % 원래 찍히는 point cloud (original)
-    figure(2);
-    plot(pointCloud_original(1,:), pointCloud_original(2,:), 'k.'); hold on; grid on; axis equal;
+    %figure(2);
+    figure(3);
+    plot(pointCloud_original(1,:), pointCloud_original(2,:), 'b.'); hold on; grid on; axis equal;
     xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
     ylabel('Y[m]','FontSize',15,'fontname','times new roman');
     set(gcf,'Color','w');
     set(gca,'FontSize',15,'fontname','times new roman');
 
+    for i = 1:length(walls)
+        if walls(i).alignment == 'x' 
+            x_offset = walls(i).offset;
+            max_xy_M = walls(i).max_xy_M;
+            min_xy_M = walls(i).min_xy_M;
+            
+            line([x_offset x_offset],[min_xy_M(2) max_xy_M(2)],'Color','k','LineWidth',4.0); hold on;
+        elseif walls(i).alignment == 'y'
+            y_offset = walls(i).offset;
+            max_xy_M = walls(i).max_xy_M;
+            min_xy_M = walls(i).min_xy_M;
+            
+            line([min_xy_M(1) max_xy_M(1)],[y_offset y_offset],'Color','k','LineWidth',4.0); hold on;
     
-    % 3) line 합치기 --> plot
+        end
+    end
+
 
     refresh; pause(0.01); k
 end
