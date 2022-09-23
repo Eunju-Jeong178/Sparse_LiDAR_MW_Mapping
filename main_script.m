@@ -77,7 +77,6 @@ MERGE_LINES_DISTANCE_TH = 0.1; % [m] walls 에 저장된 평행한 두 직선의
 
 flag = 0;
 walls_flag = 0;
-num_extra_line = 0;
 
 used_inlierPts_x_accumulate = [];
 idx_unique_used_inlierPts_accumulate = [];
