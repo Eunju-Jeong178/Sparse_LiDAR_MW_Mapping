@@ -8,7 +8,7 @@
 %               
 % output figure : Crazyflie 6DoF motion estimation 
 %                 & 6 directions point cloud & 6 DoF pose of Crazyflie
-%                 & Line fitting
+%                 & MW mapping in real time
 % -----------------------------------------------------------------------------------------------------------------------
 %%
 clc;
