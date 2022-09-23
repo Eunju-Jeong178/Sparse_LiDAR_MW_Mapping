@@ -75,7 +75,7 @@ TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
 MERGE_LINES_DISTANCE_TH = 0.1; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 
 
-flag = 0;
+used_inlierPts_flag = 0;
 walls_flag = 0;
 
 used_inlierPts_x_accumulate = [];
@@ -133,7 +133,7 @@ for k = 1: numPose_optitrack
     pointCloud_original = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
 
     % line을 만드는 데 사용된 point 제거
-    if flag == 0
+    if used_inlierPts_flag == 0
     else
         for i = 1:size(unique_used_inlierPts_x_accumulate,2)
             idx_unique_used_inlierPts_accumulate = [idx_unique_used_inlierPts_accumulate find(unique_used_inlierPts_x_accumulate(i)==pointCloud_original(1,:))];
@@ -304,7 +304,7 @@ for k = 1: numPose_optitrack
         used_inlierPts_x = [pointCloud(1,lineIdx)]; % 원래는 lineIdx % line 만드는데 사용된 points x좌표 (inlier points)
         used_inlierPts_x_accumulate = [used_inlierPts_x_accumulate used_inlierPts_x];
         unique_used_inlierPts_x_accumulate = unique(used_inlierPts_x_accumulate);
-        flag = flag + 1;
+        used_inlierPts_flag = used_inlierPts_flag + 1;
 
         pointCloud(:,lineIdx) = [];
     end
