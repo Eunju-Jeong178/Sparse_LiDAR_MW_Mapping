@@ -142,74 +142,53 @@ for k = 1: numPose_optitrack
         idx_unique_used_inlierPts_accumulate = unique(idx_unique_used_inlierPts_accumulate);
         pointCloud(:,idx_unique_used_inlierPts_accumulate) = [];
     end
-
     %%
-    while(true)
-        if walls_flag == 0 % walls가 아직 생성이 안됐다면
-        else
-            for i = 1:length(walls)
-                if walls(i).alignment == 'y'
-                    pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-                    
-                    if isempty(pointsIdxInThres) ~=0
-                        continue;
-                    elseif isempty(pointsIdxInThres) == 0
-%                         % line RANSAC으로 생성한 lineModel의 middle point
-%                         middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
-%                         middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
-%                         middlePoint = [middle_x middle_y];
-%     
-                        xmin = min(pointCloud(1,pointsIdxInThres));
-                        xmax = max(pointCloud(1,pointsIdxInThres));
-%     
-%                         x_line = [xmin, xmax];
-%                         y_line = walls(i).refittedLineModel(1) * x_line + (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1)));
-%     
-%                         line(x_line, y_line, 'color', 'k','LineWidth', 2);
-%                         num_extra_line = num_extra_line + 1;
+    if walls_flag == 0 % walls가 아직 생성이 안됐다면
+    else
+        for i = 1:length(walls)
+            if walls(i).alignment == 'y'
+                pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+                  
+                if isempty(pointsIdxInThres) ~=0
+                    continue;
+                elseif isempty(pointsIdxInThres) == 0
+ 
+                    xmin = min(pointCloud(1,pointsIdxInThres));
+                    xmax = max(pointCloud(1,pointsIdxInThres));
 
-                        % y는 중요하지 않음
-                        walls(i).min_xy_M = [min(xmin, walls(i).min_xy_M(1)) walls(i).min_xy_M(2)];
-                        walls(i).max_xy_M = [max(xmax, walls(i).max_xy_M(1)) walls(i).max_xy_M(2)];
+                    % y는 중요하지 않음
+                    walls(i).min_xy_M = [min(xmin, walls(i).min_xy_M(1)) walls(i).min_xy_M(2)];
+                    walls(i).max_xy_M = [max(xmax, walls(i).max_xy_M(1)) walls(i).max_xy_M(2)];
 
-                        % pointCloud에서 pointsIdxInThres 제거
-                        pointCloud(:,pointsIdxInThres) = [];
-                    end
+                    % pointCloud에서 pointsIdxInThres 제거
+                    pointCloud(:,pointsIdxInThres) = [];
+                end
                   
 
-                elseif walls(i).alignment == 'x'
-                    pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
+            elseif walls(i).alignment == 'x'
+                pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
                     
-                    if isempty(pointsIdxInThres) ~=0
-                        continue;
-                    elseif isempty(pointsIdxInThres) == 0
-                        % line RANSAC으로 생성한 lineModel의 middle point
-%                         middle_x = (min(pointCloud(1,pointsIdxInThres))+max(pointCloud(1,pointsIdxInThres)))/2;
-%                         middle_y = (-walls(i).refittedLineModel(1)*middle_x - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(2);
-%                         middlePoint = [middle_x middle_y];
+                if isempty(pointsIdxInThres) ~=0
+                    continue;
+                elseif isempty(pointsIdxInThres) == 0
     
-                        ymin = min(pointCloud(2,pointsIdxInThres));
-                        ymax = max(pointCloud(2,pointsIdxInThres));
-%     
-%                         y_line = [ymin, ymax];
-%                         x_line = (y_line - (middlePoint(2) - (walls(i).refittedLineModel(1) * middlePoint(1))))/walls(i).refittedLineModel(1); 
-%     
-%                         line(x_line, y_line, 'color', 'm','LineWidth', 2); % 이 명령 자체가 새로운 line을 생성하라는 명령 --> 이거말고 기존의 min_xy, max_xy를 업데이트 하잨
-%                         num_extra_line = num_extra_line + 1;
+                    ymin = min(pointCloud(2,pointsIdxInThres));
+                    ymax = max(pointCloud(2,pointsIdxInThres));
 
-                        % x는 중요하지 않음
-                        walls(i).min_xy_M = [walls(i).min_xy_M(1) min(ymin, walls(i).min_xy_M(2))];
-                        walls(i).max_xy_M = [walls(i).max_xy_M(1) max(ymax, walls(i).max_xy_M(2))];
+                    % x는 중요하지 않음
+                    walls(i).min_xy_M = [walls(i).min_xy_M(1) min(ymin, walls(i).min_xy_M(2))];
+                    walls(i).max_xy_M = [walls(i).max_xy_M(1) max(ymax, walls(i).max_xy_M(2))];
 
 
-                        % pointCloud에서 pointsIdxInThres 제거
-                        pointCloud(:,pointsIdxInThres) = [];
-                    end 
-                end
+                    % pointCloud에서 pointsIdxInThres 제거
+                    pointCloud(:,pointsIdxInThres) = [];
+                end 
             end
         end
-      
-        %%
+    end
+    %%
+    while(true)
+
         % do line RANSAC  
         [lineIdx, ~, lineModel] = detectLineRANSAC(pointCloud, RANSAC_LINE_INLIER_TH); % find inlier points and line model (a,b,c)
          
@@ -295,7 +274,7 @@ for k = 1: numPose_optitrack
 
 
             % aumgent walls
-            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];
+            walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];   
             walls_flag = walls_flag + 1;
 
             % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
@@ -315,6 +294,10 @@ for k = 1: numPose_optitrack
         else
             line(x_line, y_line, 'color', 'r', 'marker','s','LineWidth', 3);
         end
+        xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
+        ylabel('Y[m]','FontSize',15,'fontname','times new roman');
+        set(gcf,'Color','w');
+        set(gca,'FontSize',15,'fontname','times new roman');
         hold on;      
         %%        
         axis([ -2.4529    5.5749   -1.1148    5.2168])       
@@ -330,31 +313,14 @@ for k = 1: numPose_optitrack
     % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
 
     % 원래 찍히는 point cloud (original)
-    %figure(2);
-    figure(3);
+    figure(2);
+    %figure(3);
     plot(pointCloud_original(1,:), pointCloud_original(2,:), 'b.'); hold on; grid on; axis equal;
+    plot_2Dmap_line_xyplane
     xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
     ylabel('Y[m]','FontSize',15,'fontname','times new roman');
     set(gcf,'Color','w');
     set(gca,'FontSize',15,'fontname','times new roman');
-
-    for i = 1:length(walls)
-        if walls(i).alignment == 'x' 
-            x_offset = walls(i).offset;
-            max_xy_M = walls(i).max_xy_M;
-            min_xy_M = walls(i).min_xy_M;
-            
-            line([x_offset x_offset],[min_xy_M(2) max_xy_M(2)],'Color','k','LineWidth',4.0); hold on;
-        elseif walls(i).alignment == 'y'
-            y_offset = walls(i).offset;
-            max_xy_M = walls(i).max_xy_M;
-            min_xy_M = walls(i).min_xy_M;
-            
-            line([min_xy_M(1) max_xy_M(1)],[y_offset y_offset],'Color','k','LineWidth',4.0); hold on;
-    
-        end
-    end
-
 
     refresh; pause(0.01); k
 end
