@@ -69,10 +69,10 @@ end
 %% * Manhattan frame mapping parameters
 
 RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
-NUM_INLIER_POINTS_TH = 50;
+NUM_INLIER_POINTS_TH = 30;
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
 TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
-MERGE_LINES_DISTANCE_TH = 0.1; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
+PARALLEL_OFFSET_TH = 0.1; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 
 
 used_inlierPts_flag = 0;
@@ -92,7 +92,7 @@ MF = [MF_X MF_Y MF_Z];
 % 1) play 3D moving trajectory of Crazyflie pose
 figure(1);
 figure(2);
-%figure(3);
+figure(3);
 
 %for k = 1:numPose_optitrack
 for k = 1: numPose_optitrack
@@ -141,7 +141,8 @@ for k = 1: numPose_optitrack
         idx_unique_used_inlierPts_accumulate = unique(idx_unique_used_inlierPts_accumulate);
         pointCloud(:,idx_unique_used_inlierPts_accumulate) = [];
     end
-    %%
+    
+    %% Line 늘리기
     if walls_flag == 0 % walls가 아직 생성이 안됐다면
     else
         for i = 1:length(walls)
@@ -160,7 +161,7 @@ for k = 1: numPose_optitrack
                     walls(i).max_xy_M = [max(xmax, walls(i).max_xy_M(1)) walls(i).max_xy_M(2)];
 
                     % pointCloud에서 pointsIdxInThres 제거
-                    pointCloud(:,pointsIdxInThres) = [];
+                    %pointCloud(:,pointsIdxInThres) = [];
                 end
                   
 
@@ -180,12 +181,13 @@ for k = 1: numPose_optitrack
 
 
                     % pointCloud에서 pointsIdxInThres 제거
-                    pointCloud(:,pointsIdxInThres) = [];
+                    %pointCloud(:,pointsIdxInThres) = [];
                 end 
             end
         end
     end
-    %%
+    
+    %% Line RANSAC and Walls 누적
     while(true)
 
         % do line RANSAC  
@@ -238,7 +240,7 @@ for k = 1: numPose_optitrack
             walls_flag = walls_flag + 1;
 
             % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
-            walls_ = initializeMWMap(walls,MERGE_LINES_DISTANCE_TH);
+            removeUnnecessaryLineInWalls
 
         %%
         else
@@ -277,7 +279,7 @@ for k = 1: numPose_optitrack
             walls_flag = walls_flag + 1;
 
             % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
-            walls_ = initializeMWMap(walls, MERGE_LINES_DISTANCE_TH);
+            removeUnnecessaryLineInWalls
 
         end
 
@@ -288,6 +290,7 @@ for k = 1: numPose_optitrack
         plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r.'); % 원래는 lineIdx
         %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
 
+        % 여긴 이제 고쳐야 됨. 합친 게 반영 안됐음. walls에 누적하는 족족 그리니까. 지금은 제거랑 별개임.********
         if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH
             line(x_line, y_line, 'color', 'g', 'marker','s','LineWidth', 3);
         else
@@ -312,8 +315,8 @@ for k = 1: numPose_optitrack
     % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
 
     % 원래 찍히는 point cloud (original)
-    figure(2);
-    %figure(3);
+    %figure(2);
+    figure(3);
     plot(pointCloud_original(1,:), pointCloud_original(2,:), 'b.'); hold on; grid on; axis equal;
     plot_2Dmap_line_xyplane
     xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
