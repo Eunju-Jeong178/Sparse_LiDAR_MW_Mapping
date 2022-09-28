@@ -1,5 +1,5 @@
 % -----------------------------------------------------------------------------------------------------------------------
-% Author : Eunju Jeong (eunju0316@sookmyung.ac.kr) 
+% Author : Eunju Jeong (eunjujeong178@gmail.com) 
 % 
 % input data  : 1) Crazyflie_6DoF_pose.txt 
 %                  (unixTimeStamp, r11, r12, r13, tx[m], r21, r22, r23, ty[m], r31, r32, r33, tz[m])
