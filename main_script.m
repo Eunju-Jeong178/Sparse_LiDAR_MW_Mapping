@@ -1,5 +1,5 @@
 % -----------------------------------------------------------------------------------------------------------------------
-% Author : Eunju Jeong (eunjujeong178@gmail.com) 
+% Author : Eunju Jeong (eunju0316@sookmyung.ac.kr) 
 % 
 % input data  : 1) Crazyflie_6DoF_pose.txt 
 %                  (unixTimeStamp, r11, r12, r13, tx[m], r21, r22, r23, ty[m], r31, r32, r33, tz[m])
@@ -23,7 +23,7 @@ delimiter = ' ';
 headerlinesIn = 1;
 milliSecondToSecond = 1000;
 
-%% * Parse Crazyflie 6 DoF pose data by Optitrack
+%% Parse Crazyflie 6 DoF pose data by Optitrack
 
 % parsing Crazyflie(CF) pose data text file 
 textFileDir_optitrack = 'input\FlowdeckTime_Optitrack_Crazyflie_6DoF_pose.txt'
@@ -50,7 +50,7 @@ for k = 1:numPose_optitrack
     stateEsti_CF_optitrack(4:6,k) = [roll_optitrack; pitch_optitrack; yaw_optitrack];
 end
 
-%% * Parse Crazyflie point cloud data (1x19): Optitrack 
+%% Parse Crazyflie point cloud data (1x19): Optitrack 
 
 % parsing Crazyflie point cloud data text file
 textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_optitrack.txt'
@@ -66,14 +66,14 @@ for k = 1:numPointCloud_Optitrack
     pointcloud_CF_Optitrack(:,k)=CFPointCloudData_Optitrack(k,:);
 end
 
-%% * Manhattan frame mapping parameters
+%% Manhattan frame mapping parameters
 
 RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
 NUM_INLIER_POINTS_TH = 30;
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
 TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
 PARALLEL_OFFSET_TH = 0.1; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
-
+ceiling_height = 2.5; % [m]
 
 used_inlierPts_flag = 0;
 walls_flag = 0;
@@ -83,16 +83,13 @@ idx_unique_used_inlierPts_accumulate = [];
 
 walls = []; % 여기는 이제 전체 walls (MW_Map)
 
-%% * Plot trajectory, point cloud, line (moving)
+%% Plot trajectory, point cloud, line (moving)
 
 % Define Manhattan frame (MF)
 MF_X = [1;0.0012;0.000824]; MF_Y = [-0.0012;1;-0.0015]; MF_Z = [-0.000826;0.0015;1];
 MF = [MF_X MF_Y MF_Z];
 
 % 1) play 3D moving trajectory of Crazyflie pose
-figure(1);
-figure(2);
-figure(3);
 
 %for k = 1:numPose_optitrack
 for k = 1: numPose_optitrack
@@ -100,7 +97,7 @@ for k = 1: numPose_optitrack
 
     %% 1) draw moving trajectory (optitrack)
     p_gc_CF_optitrack = stateEsti_CF_optitrack(1:3,1:k);
-    plot3(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), p_gc_CF_optitrack(3,:), 'c', 'LineWidth', 2); hold on; grid on; axis equal;
+    plot3(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), p_gc_CF_optitrack(3,:), 'm', 'LineWidth', 2); hold on; grid on; axis equal;
     xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
     ylabel('Y[m]','FontSize',15,'fontname','times new roman');
     zlabel('Z[m]','FontSize',15,'fontname','times new roman');
@@ -118,8 +115,8 @@ for k = 1: numPose_optitrack
     axis equal; hold on;
   
     %% 3) draw camera body and frame (optitrack)
-    plot_inertial_frame(0.5); view(47, 48);
-    Rgc_CF_current = T_gc_CF_optitrack{k}(1:3,1:3);
+    plot_inertial_frame(0.5); view(47, 48); % plot inertial frame
+    Rgc_CF_current = T_gc_CF_optitrack{k}(1:3,1:3); % plot body frame
     pgc_CF_current = T_gc_CF_optitrack{k}(1:3,4);
     plot_CF_frame(Rgc_CF_current, pgc_CF_current, 0.5, 'm'); hold on;
 
@@ -160,8 +157,12 @@ for k = 1: numPose_optitrack
                     walls(i).min_xy_M = [min(xmin, walls(i).min_xy_M(1)) walls(i).min_xy_M(2)];
                     walls(i).max_xy_M = [max(xmax, walls(i).max_xy_M(1)) walls(i).max_xy_M(2)];
 
+
                     % pointCloud에서 pointsIdxInThres 제거
-                    %pointCloud(:,pointsIdxInThres) = [];
+                    pointCloud(:,pointsIdxInThres) = [];
+
+%                     % 각 line에 새로 포함된 point 개수 추가 
+%                     walls(i).score = length(pointsIdxInThres); % 다시!
                 end
                   
 
@@ -181,13 +182,17 @@ for k = 1: numPose_optitrack
 
 
                     % pointCloud에서 pointsIdxInThres 제거
-                    %pointCloud(:,pointsIdxInThres) = [];
+                    pointCloud(:,pointsIdxInThres) = [];
+
+
+%                     % 각 line에 새로 포함된 point 개수 추가 
+%                     walls(i).score = length(pointsIdxInThres); % 이건 아님 다시 생각해보기
                 end 
             end
         end
     end
     
-    %% Line RANSAC and Walls 누적
+    %% Line 생성(line RANSAC) 및 walls 누적
     while(true)
 
         % do line RANSAC  
@@ -285,21 +290,21 @@ for k = 1: numPose_optitrack
 
         % plot line RANSAC results 
         %figure; % figure(2) 대신 이걸로 하면 line 한 개씩 각 단계가 따로따로 그려진다. 단계별로 확인하기 좋음
-        figure(2);
-        plot(pointCloud(1,:), pointCloud(2,:), 'k.'); hold on; grid on; axis equal;
-        plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r.'); % 원래는 lineIdx
-        %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
-
-        % 여긴 이제 고쳐야 됨. 합친 게 반영 안됐음. walls에 누적하는 족족 그리니까. 지금은 제거랑 별개임.********
-        if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH
-            line(x_line, y_line, 'color', 'g', 'marker','s','LineWidth', 3);
-        else
-            line(x_line, y_line, 'color', 'r', 'marker','s','LineWidth', 3);
-        end
-        xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
-        ylabel('Y[m]','FontSize',15,'fontname','times new roman');
-        set(gcf,'Color','w');
-        set(gca,'FontSize',15,'fontname','times new roman');
+%         figure(2);
+%         plot(pointCloud(1,:), pointCloud(2,:), 'k.'); hold on; grid on; axis equal;
+%         plot(pointCloud(1,lineIdx), pointCloud(2,lineIdx), 'r.'); % 원래는 lineIdx
+%         %line(x_line, y_line, 'color', 'm', 'LineWidth', 2);
+% 
+%         % 여긴 이제 고쳐야 됨. 합친 게 반영 안됐음. walls에 누적하는 족족 그리니까. 지금은 제거랑 별개임.********
+%         if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH
+%             line(x_line, y_line, 'color', 'g', 'marker','s','LineWidth', 3);
+%         else
+%             line(x_line, y_line, 'color', 'r', 'marker','s','LineWidth', 3);
+%         end
+%         xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
+%         ylabel('Y[m]','FontSize',15,'fontname','times new roman');
+%         set(gcf,'Color','w');
+%         set(gca,'FontSize',15,'fontname','times new roman');
         hold on;      
         %%        
         axis([ -2.4529    5.5749   -1.1148    5.2168])       
@@ -312,12 +317,16 @@ for k = 1: numPose_optitrack
         pointCloud(:,lineIdx) = [];
     end
 
-    % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
+    %plot_2Dmap_line_xyplane
+    plot_plane
 
-    % 원래 찍히는 point cloud (original)
-    %figure(2);
+
+    % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
     figure(3);
     plot(pointCloud_original(1,:), pointCloud_original(2,:), 'b.'); hold on; grid on; axis equal;
+    plot(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), 'm', 'LineWidth', 2);
+    plot_inertial_frame(0.5);
+    %plot_CF_frame(Rgc_CF_current, pgc_CF_current, 0.5, 'm'); hold on;
     plot_2Dmap_line_xyplane
     xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
     ylabel('Y[m]','FontSize',15,'fontname','times new roman');
