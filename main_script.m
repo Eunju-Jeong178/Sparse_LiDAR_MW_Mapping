@@ -74,15 +74,12 @@ RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점
 NUM_INLIER_POINTS_TH = 40;
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
 TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
-PARALLEL_OFFSET_TH = 0.2; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
+PARALLEL_OFFSET_TH = 0.7; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 %ceiling_height = 2.5; % [m]
 pointsIdxInThres_accumulate = [];
 
-used_inlierPts_flag = 0;
+used_points_flag = 0;
 walls_flag = 0;
-
-used_inlierPts_x_accumulate = [];
-idx_unique_used_inlierPts_accumulate = [];
 
 used_points_accumulate = [];
 
@@ -135,7 +132,7 @@ for k = 1: numPose_optitrack
     pointCloud_original = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
 
     % line을 만드는 데 사용된 point 제거
-    if used_inlierPts_flag == 0
+    if used_points_flag == 0
     else
         % 새로운 pointCloud에서 used_points_accumulate 제거
         pointCloud_1 = pointCloud(1,:);
@@ -338,7 +335,7 @@ for k = 1: numPose_optitrack
 
             used_points_accumulate = [used_points_accumulate used_points];
 
-            used_inlierPts_flag = used_inlierPts_flag + 1;
+            used_points_flag = used_points_flag + 1;
            
         end
         
