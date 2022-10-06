@@ -74,7 +74,7 @@ RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점
 NUM_INLIER_POINTS_TH = 40;
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
 TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
-PARALLEL_OFFSET_TH = 0.7; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
+PARALLEL_OFFSET_TH = 0.2; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 %ceiling_height = 2.5; % [m]
 pointsIdxInThres_accumulate = [];
 
