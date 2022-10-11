@@ -26,8 +26,11 @@ milliSecondToSecond = 1000;
 %% 1.Parse Crazyflie 6 DoF pose data by Optitrack
 
 % parsing Crazyflie(CF) pose data text file 
-%textFileDir_optitrack = 'input\FlowdeckTime_Optitrack_Crazyflie_6DoF_pose.txt'
-textFileDir_optitrack = 'input\Crazyflie_6DoF_pose.txt'
+%textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_B201.txt'
+textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_B2Lshaped.txt'
+%textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_B2Straight.txt'
+%textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_B2Lounge.txt'
+%textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_2FLounge.txt'
 
 textPoseData_optitrack = importdata(textFileDir_optitrack, delimiter, headerlinesIn);
 CFPoseTime_optitrack = textPoseData_optitrack.data(:,1).';
@@ -54,8 +57,11 @@ end
 %% 2.Parse Crazyflie point cloud data (1x19): Optitrack 
 
 % parsing Crazyflie point cloud data text file
-%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_optitrack.txt'
-textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19.txt'
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_B201.txt'
+textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_B2Lshaped.txt'
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_B2Straight.txt'
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_B2Lounge.txt'
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_2FLounge.txt'
 
 textCFPointCloudData_Optitrack = importdata(textFileDir_pointcloud_Optitrack, delimiter, headerlinesIn);
 
@@ -73,15 +79,15 @@ end
 RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
 NUM_INLIER_POINTS_TH = 40;
 ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
-TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m]
-PARALLEL_OFFSET_TH = 0.7; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
+TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3; % [m] % 점과 직선사이의 거리가 이 값 안에 있으면 이 점들을 포함하여 line 늘림
+TH_DISTANCE_BETWEEN_ENDPOINT = 1; % [m]
+PARALLEL_OFFSET_TH = 0.3; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 %ceiling_height = 2.5; % [m]
-pointsIdxInThres_accumulate = [];
 
-used_points_flag = 0;
-walls_flag = 0;
+used_points_sign = 0;
+walls_sign = 0;
 
-used_points_accumulate = [];
+used_points_accumulate = []; % (line 생성에 사용된 inlier points) + (line 늘리는데 사용된 points)
 
 walls = []; % 여기는 이제 전체 walls (MW_Map)
 
@@ -132,31 +138,32 @@ for k = 1: numPose_optitrack
     pointCloud_original = [CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
 
     % line을 만드는 데 사용된 point 제거
-    if used_points_flag == 0
+    if used_points_sign == 0
     else
         % 새로운 pointCloud에서 used_points_accumulate 제거
-        pointCloud_1 = pointCloud(1,:);
-        pointCloud_2 = pointCloud(2,:);
-        pointCloud_3 = pointCloud(3,:);
+        pointCloud_x = pointCloud(1,:);
+        pointCloud_y = pointCloud(2,:);
+        pointCloud_z = pointCloud(3,:);
             
-        new_pointCloud_1 = setdiff(pointCloud_1,used_points_accumulate(1,:),'stable');
-        new_pointCloud_2 = setdiff(pointCloud_2,used_points_accumulate(2,:),'stable');
-        new_pointCloud_3 = setdiff(pointCloud_3,used_points_accumulate(3,:),'stable');
-        new_pointCloud = [new_pointCloud_1;new_pointCloud_2;new_pointCloud_3];
+        new_pointCloud_x = setdiff(pointCloud_x,used_points_accumulate(1,:),'stable');
+        new_pointCloud_y = setdiff(pointCloud_y,used_points_accumulate(2,:),'stable');
+        new_pointCloud_z = setdiff(pointCloud_z,used_points_accumulate(3,:),'stable');
+        new_pointCloud = [new_pointCloud_x;new_pointCloud_y;new_pointCloud_z];
 
         pointCloud = new_pointCloud;
     end
     
     %% Line 늘리기
-    if walls_flag == 0 % walls가 아직 생성이 안됐다면
+    if walls_sign == 0 % walls가 아직 생성이 안됐다면
     else
         for i = 1:length(walls)
             if walls(i).alignment == 'y'
-                pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-                  
+                pointsIdxInThres = PointsInThres(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
                 if isempty(pointsIdxInThres) ~=0
                     continue;
                 elseif isempty(pointsIdxInThres) == 0
+
+
  
                     xmin = min(pointCloud(1,pointsIdxInThres));
                     xmax = max(pointCloud(1,pointsIdxInThres));
@@ -175,9 +182,8 @@ for k = 1: numPose_optitrack
                   
 
             elseif walls(i).alignment == 'x'
-                pointsIdxInThres = PointsInThres(pointCloud, walls(i).refittedLineModel, TH_DISTANCE_BETWEEN_REFITTED_LINE);
-%                 pointsIdxInThres_accumulate = [pointsIdxInThres_accumulate pointsIdxInThres];
-                    
+                pointsIdxInThres = PointsInThres(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
+
                 if isempty(pointsIdxInThres) ~=0
                     continue;
                 elseif isempty(pointsIdxInThres) == 0
@@ -193,13 +199,11 @@ for k = 1: numPose_optitrack
                     % pointCloud에서 pointsIdxInThres 제거
                     pointCloud(:,pointsIdxInThres) = [];
 
-
-%                     % 각 line에 새로 포함된 point 개수 추가 
-%                     walls(i).score = length(pointsIdxInThres_accumulate);
                 end 
             end
         end
     end
+
     
     %% Line 생성(line RANSAC) 및 walls 누적
     while(true)
@@ -254,7 +258,7 @@ for k = 1: numPose_optitrack
                
                 % aumgent walls
                 walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];
-                walls_flag = walls_flag + 1;
+                walls_sign = walls_sign + 1;
     
                 % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
                 removeUnnecessaryLineInWalls
@@ -293,7 +297,7 @@ for k = 1: numPose_optitrack
     
                 % aumgent walls
                 walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];   
-                walls_flag = walls_flag + 1;
+                walls_sign = walls_sign + 1;
     
                 % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
                 removeUnnecessaryLineInWalls
@@ -324,18 +328,17 @@ for k = 1: numPose_optitrack
             pointCloud(:,lineIdx) = [];
 
           % pointCloud_original에서 pointCloud를 제거한 것이 used_points 이다. 여기서 used_points를 정의한다.
-            pointCloud_original_1 = pointCloud_original(1,:);
-            pointCloud_original_2 = pointCloud_original(2,:);
-            pointCloud_original_3 = pointCloud_original(3,:);
+            pointCloud_original_x = pointCloud_original(1,:);
+            pointCloud_original_y = pointCloud_original(2,:);
+            pointCloud_original_z = pointCloud_original(3,:);
             
-            used_points_1 = setdiff(pointCloud_original_1,pointCloud(1,:),'stable');
-            used_points_2 = setdiff(pointCloud_original_2,pointCloud(2,:),'stable');
-            used_points_3 = setdiff(pointCloud_original_3,pointCloud(3,:),'stable');
-            used_points = [used_points_1;used_points_2;used_points_3];
+            used_points_x = setdiff(pointCloud_original_x,pointCloud(1,:),'stable');
+            used_points_y = setdiff(pointCloud_original_y,pointCloud(2,:),'stable');
+            used_points_z = setdiff(pointCloud_original_z,pointCloud(3,:),'stable');
+            used_points = [used_points_x;used_points_y;used_points_z];
 
             used_points_accumulate = [used_points_accumulate used_points];
-
-            used_points_flag = used_points_flag + 1;
+            used_points_sign = used_points_sign + 1; % used_points_accumulate가 생성되었다는 뜻
            
         end
         
