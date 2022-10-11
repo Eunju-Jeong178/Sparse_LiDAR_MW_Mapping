@@ -158,7 +158,7 @@ for k = 1: numPose_optitrack
     else
         for i = 1:length(walls)
             if walls(i).alignment == 'y'
-                pointsIdxInThres = PointsInThres(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
+                pointsIdxInThres = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
                 if isempty(pointsIdxInThres) ~=0
                     continue;
                 elseif isempty(pointsIdxInThres) == 0
@@ -181,7 +181,7 @@ for k = 1: numPose_optitrack
                   
 
             elseif walls(i).alignment == 'x'
-                pointsIdxInThres = PointsInThres(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
+                pointsIdxInThres = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
 
                 if isempty(pointsIdxInThres) ~=0
                     continue;
