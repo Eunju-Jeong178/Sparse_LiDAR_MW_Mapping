@@ -162,8 +162,7 @@ for k = 1: numPose_optitrack
                 if isempty(pointsIdxInThres) ~=0
                     continue;
                 elseif isempty(pointsIdxInThres) == 0
-
-
+                    
  
                     xmin = min(pointCloud(1,pointsIdxInThres));
                     xmax = max(pointCloud(1,pointsIdxInThres));
