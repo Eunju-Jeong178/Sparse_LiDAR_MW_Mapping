@@ -158,14 +158,14 @@ for k = 1: numPose_optitrack
     else
         for i = 1:length(walls)
             if walls(i).alignment == 'y'
-                pointsIdxInThres = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
-                if isempty(pointsIdxInThres) ~=0
+                pointsSameWall = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
+                if isempty(pointsSameWall) ~=0
                     continue;
-                elseif isempty(pointsIdxInThres) == 0
+                elseif isempty(pointsSameWall) == 0
                     
  
-                    xmin = min(pointCloud(1,pointsIdxInThres));
-                    xmax = max(pointCloud(1,pointsIdxInThres));
+                    xmin = min(pointCloud(1,pointsSameWall));
+                    xmax = max(pointCloud(1,pointsSameWall));
 
                     % y는 중요하지 않음
                     walls(i).min_xy_M = [min(xmin, walls(i).min_xy_M(1)) walls(i).min_xy_M(2)];
@@ -173,7 +173,7 @@ for k = 1: numPose_optitrack
 
 
                     % pointCloud에서 pointsIdxInThres 제거
-                    pointCloud(:,pointsIdxInThres) = [];
+                    pointCloud(:,pointsSameWall) = [];
 
 %                     % 각 line에 새로 포함된 point 개수 추가 
 %                     walls(i).score = length(pointsIdxInThres); % 다시!
@@ -181,14 +181,14 @@ for k = 1: numPose_optitrack
                   
 
             elseif walls(i).alignment == 'x'
-                pointsIdxInThres = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
+                pointsSameWall = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
 
-                if isempty(pointsIdxInThres) ~=0
+                if isempty(pointsSameWall) ~=0
                     continue;
-                elseif isempty(pointsIdxInThres) == 0
+                elseif isempty(pointsSameWall) == 0
     
-                    ymin = min(pointCloud(2,pointsIdxInThres));
-                    ymax = max(pointCloud(2,pointsIdxInThres));
+                    ymin = min(pointCloud(2,pointsSameWall));
+                    ymax = max(pointCloud(2,pointsSameWall));
 
                     % x는 중요하지 않음
                     walls(i).min_xy_M = [walls(i).min_xy_M(1) min(ymin, walls(i).min_xy_M(2))];
@@ -196,7 +196,7 @@ for k = 1: numPose_optitrack
 
 
                     % pointCloud에서 pointsIdxInThres 제거
-                    pointCloud(:,pointsIdxInThres) = [];
+                    pointCloud(:,pointsSameWall) = [];
 
                 end 
             end
@@ -343,7 +343,6 @@ for k = 1: numPose_optitrack
         
     end
 
-    %plot_2Dmap_line_xyplane
     plot_plane; view(47, 48);
 
 
