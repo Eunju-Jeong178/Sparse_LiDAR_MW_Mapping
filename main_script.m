@@ -31,7 +31,6 @@ milliSecondToSecond = 1000;
 textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_B2Straight.txt'
 %textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_B2Lounge.txt'
 %textFileDir_optitrack = 'input\Crazyflie_6DoF_pose_2FLounge.txt'
-%textFileDir_optitrack = 'input\Crazyflie_6DoF_pose.txt'
 
 textPoseData_optitrack = importdata(textFileDir_optitrack, delimiter, headerlinesIn);
 CFPoseTime_optitrack = textPoseData_optitrack.data(:,1).';
@@ -63,7 +62,6 @@ end
 textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_B2Straight.txt'
 %textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_B2Lounge.txt'
 %textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19_2FLounge.txt'
-%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x19.txt'
 
 textCFPointCloudData_Optitrack = importdata(textFileDir_pointcloud_Optitrack, delimiter, headerlinesIn);
 
