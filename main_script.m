@@ -343,7 +343,7 @@ for k = 1: numPose_optitrack
         
     end
 
-    plot_plane; view(47, 48);
+    plot_plane; view(-47, 48);
 
 
     % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
