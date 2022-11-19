@@ -347,7 +347,7 @@ for k = 1: numPose_optitrack
 
 
     % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
-    figure(3);
+    figure(3); view(-90,90)
     plot(pointCloud_original(1,:), pointCloud_original(2,:), 'b.'); hold on; grid on; axis equal;
     plot(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), 'm', 'LineWidth', 2);
     plot_inertial_frame(0.5);
