@@ -72,12 +72,12 @@ end
 
 %% 3.Manhattan frame mapping parameters
 
-RANSAC_LINE_INLIER_TH = 0.05; % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
-NUM_INLIER_POINTS_TH = 40;
-ANGLE_TH = 20; % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
-TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.7; % [m] % 점과 직선사이의 거리가 이 값 안에 있으면 이 점들을 포함하여 line 늘림
-TH_DISTANCE_BETWEEN_ENDPOINT = 1; % [m]
-PARALLEL_OFFSET_TH = 0.7; % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
+RANSAC_LINE_INLIER_TH = 0.05;             % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
+NUM_INLIER_POINTS_TH = 40;                % RANSAC으로 생성한 line의 inlier point 개수가 이 값 보다 크면 의미있는 벽으로 취급 --> walls 에 저장할 직선
+ANGLE_TH = 20;                            % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
+TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3;  % [m] % 점과 직선사이의 거리가 이 값 안에 있으면 이 점들을 포함하여 line 늘림
+TH_DISTANCE_BETWEEN_ENDPOINT = 1;         % [m] % TH_DISTANCE_BETWEEN_REFITTED_LINE 안에 있는 점 중에서 선의 끝점과의 거리가 이 값보다 작은 값만 저장해서 늘림
+PARALLEL_OFFSET_TH = 0.7;                 % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 %ceiling_height = 2.5; % [m]
 
 used_points_sign = 0;
