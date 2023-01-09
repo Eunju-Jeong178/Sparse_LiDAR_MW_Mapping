@@ -131,6 +131,7 @@ for k = 1: numPose_optitrack
 %     pointCloud = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
 %     pointCloud_original = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
 
+    % LiDAR 4 제거 버전
     pointCloud = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9)]';
     pointCloud_original = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9)]';
 
