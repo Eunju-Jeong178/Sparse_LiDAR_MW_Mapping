@@ -26,56 +26,53 @@ milliSecondToSecond = 1000;
 %% 1.Parse Crazyflie 6 DoF pose data by Optitrack
 
 % parsing Crazyflie(CF) pose data text file 
-%textFileDir = 'input\StrayScanner_6DoF_pose_20230102_B2_elevator.txt';
-%textFileDir = 'input\StrayScanner_6DoF_pose_20230103_B2_openSpace.txt';
-%textFileDi = 'input\StrayScanner_6DoF_pose_20230105_B3.txt';
-%textFileDir = 'input\StrayScanner_6DoF_pose_20230105_B2_elevator.txt';
-%textFileDir = 'input\StrayScanner_6DoF_pose_TF02_B2_openSpace_01_.txt';
-%textFileDir = 'input\StrayScanner_6DoF_pose_newRig_20230103_B2_openSpace_forLPSLAM.txt';
-textFileDir = 'input\StrayScanner_6DoF_pose_TF02_20230119_openSpace_02_0.3m~20m.txt';
+%textFileDir_optitrack = 'input\StrayScanner_6DoF_pose_20230102_B2_elevator.txt';
+%textFileDir_optitrack = 'input\StrayScanner_6DoF_pose_20230103_B2_openSpace.txt';
+%textFileDir_optitrack = 'input\StrayScanner_6DoF_pose_20230105_B3.txt';
+%textFileDir_optitrack = 'input\StrayScanner_6DoF_pose_20230105_B2_elevator.txt';
+textFileDir_optitrack = 'input\StrayScanner_6DoF_pose_TF02_20230119_openSpace_02_0.3m~20m.txt';
 
-textPoseData = importdata(textFileDir, delimiter, headerlinesIn);
-poseTime = textPoseData.data(:,1).';
-poseTime = (poseTime - poseTime(1)) ./ milliSecondToSecond;
-poseData = textPoseData.data(:,2:13);
+textPoseData_optitrack = importdata(textFileDir_optitrack, delimiter, headerlinesIn);
+CFPoseTime_optitrack = textPoseData_optitrack.data(:,1).';
+CFPoseTime_optitrack = (CFPoseTime_optitrack - CFPoseTime_optitrack(1)) ./ milliSecondToSecond;
+CFPoseData_optitrack = textPoseData_optitrack.data(:,2:13);
 
 % Crazyflie pose with various 6-DoF pose representations
-numPose = size(poseData,1);
-T_gc = cell(1,numPose); % initialize
-stateEsti = zeros(6,numPose); % initialize
-R_gc = zeros(3,3,numPose);
-for imgIdx = 1:numPose
+numPose_optitrack = size(CFPoseData_optitrack,1);
+T_gc_CF_optitrack = cell(1,numPose_optitrack); % initialize
+stateEsti_CF_optitrack = zeros(6,numPose_optitrack); % initialize
+R_gc_CF_optitrack = zeros(3,3,numPose_optitrack);
+for k = 1:numPose_optitrack
     
     % rigid body transformation matrix (4x4)
-    T_gc{imgIdx} = [reshape(poseData(imgIdx,:).', 4, 3).'; [0, 0, 0, 1]];
+    T_gc_CF_optitrack{k} = [reshape(CFPoseData_optitrack(k,:).', 4, 3).'; [0, 0, 0, 1]];
     
     % state vector and rotation matrix
-    R_gc(:,:,imgIdx) = T_gc{imgIdx}(1:3,1:3);
-    stateEsti(1:3,imgIdx) = T_gc{imgIdx}(1:3,4);
-    [yaw, pitch, roll] = dcm2angle(R_gc(:,:,imgIdx));
-    stateEsti(4:6,imgIdx) = [roll; pitch; yaw];
+    R_gc_CF_optitrack(:,:,k) = T_gc_CF_optitrack{k}(1:3,1:3);
+    stateEsti_CF_optitrack(1:3,k) = T_gc_CF_optitrack{k}(1:3,4);
+    [yaw_optitrack, pitch_optitrack, roll_optitrack] = dcm2angle(R_gc_CF_optitrack(:,:,k));
+    stateEsti_CF_optitrack(4:6,k) = [roll_optitrack; pitch_optitrack; yaw_optitrack];
 end
 
 %% 2.Parse Crazyflie point cloud data (1x19): Optitrack 
 
 % parsing Crazyflie point cloud data text file
-%textFileDir_pointcloud = 'input\global_pointcloud_1x13_20230102_B2_elevator.txt';
-%textFileDir_pointcloud = 'input\global_pointcloud_1x13_20230103_B2_openSpace.txt'; 
-%textFileDir_pointcloud = 'input\global_pointcloud_1x13_20230105_B3.txt';
-%textFileDir_pointcloud = 'input\global_pointcloud_1x13_20230105_B2_elevator.txt';
-%textFileDir_pointcloud = 'input\global_pointcloud_1x13_TF02_B2_openSpace_01_.txt';
-%textFileDir_pointcloud = 'input\global_pointcloud_1x13_newRig_20230103_B2_openSpace_forLPSLAM.txt';
-textFileDir_pointcloud = 'input\global_pointcloud_1x13_TF02_20230119_openSpace_02_0.3m~20m.txt';
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x13_20230102_B2_elevator.txt';
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x13_20230103_B2_openSpace.txt'; 
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x13_20230105_B3.txt';
+%textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x13_20230105_B2_elevator.txt';
 
-textCFPointCloudData = importdata(textFileDir_pointcloud, delimiter, headerlinesIn);
+textFileDir_pointcloud_Optitrack = 'input\global_pointcloud_1x13_TF02_20230119_openSpace_02_0.3m~20m.txt';
+
+textCFPointCloudData_Optitrack = importdata(textFileDir_pointcloud_Optitrack, delimiter, headerlinesIn);
 
 % Crazyflie 3D point cloud
-pointCloud_xyz = textCFPointCloudData.data(:,2:13); % except for timestamp
-numPointCloud = size(pointCloud_xyz, 1);
-pointcloud_xyz = zeros(12, numPointCloud); % initialize
+CFPointCloudData_Optitrack = textCFPointCloudData_Optitrack.data(:,2:13); % except for timestamp
+numPointCloud_Optitrack = size(CFPointCloudData_Optitrack, 1);
+pointcloud_CF_Optitrack = zeros(12, numPointCloud_Optitrack); % initialize
 
-for imgIdx = 1:numPointCloud
-    pointcloud_xyz(:,imgIdx)=pointCloud_xyz(imgIdx,:);
+for k = 1:numPointCloud_Optitrack
+    pointcloud_CF_Optitrack(:,k)=CFPointCloudData_Optitrack(k,:);
 end
 
 %% 3.Manhattan frame mapping parameters
@@ -83,89 +80,69 @@ end
 RANSAC_LINE_INLIER_TH = 0.05;             % [m], 랜덤으로 생성한 직선과 어떤 점과의 거리가 이 값 안에 있으면 inlier point로 취급
 NUM_INLIER_POINTS_TH = 40;                % RANSAC으로 생성한 line의 inlier point 개수가 이 값 보다 크면 의미있는 벽으로 취급 --> walls 에 저장할 직선
 ANGLE_TH = 20;                            % [deg], MF_X축과의 각도차이가 이 값 이하이면 MF_X축과 평행한 것으로 취급
-TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.7;  % [m] % 점과 직선사이의 거리가 이 값 안에 있으면 이 점들을 포함하여 line 늘림 (for visualization)
-TH_DISTANCE_BETWEEN_ENDPOINT = 1;         % [m] % TH_DISTANCE_BETWEEN_REFITTED_LINE 안에 있는 점 중에서 선의 끝점과의 거리가 이 값보다 작은 값만 저장해서 늘림 (for visualization)
-PARALLEL_OFFSET_TH = 0.2;                 % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
+TH_DISTANCE_BETWEEN_REFITTED_LINE = 0.3;  % [m] % 점과 직선사이의 거리가 이 값 안에 있으면 이 점들을 포함하여 line 늘림
+TH_DISTANCE_BETWEEN_ENDPOINT = 1;         % [m] % TH_DISTANCE_BETWEEN_REFITTED_LINE 안에 있는 점 중에서 선의 끝점과의 거리가 이 값보다 작은 값만 저장해서 늘림
+PARALLEL_OFFSET_TH = 0.7;                 % [m] walls 에 저장된 평행한 두 직선의 거리 차이가 이 값 이하이면 첫 번째 line으로 합침 
 %ceiling_height = 2.5; % [m]
-isPointInThisWall_th = 0.1;  %[m] state update용. 해당 point가 정말로 그 벽에 해당하는지 판단용
 
 used_points_sign = 0;
-MW_Map_sign = 0;
+walls_sign = 0;
 
 used_points_accumulate = []; % (line 생성에 사용된 inlier points) + (line 늘리는데 사용된 points)
 
-MW_Map = []; % 여기는 이제 전체 walls (MW_Map)
-
-%walls_current = []; % 매번 생성되는 모든 line들 누적
-
-current_points = []; % 현재 시점(imgIdx 즉 k)에서 관측되는 4개의 point
+walls = []; % 여기는 이제 전체 walls (MW_Map)
 
 %% Plot trajectory, point cloud, line (moving)
 
 % Define Manhattan frame (MF)
-MF_X = [1;0.00000001;0.00000001]; MF_Y = [0.00000001;1;0.00000001]; MF_Z = [0.00000001;0.00000001;1];
+%MF_X = [0.9816;-0.1908;0]; MF_Y = [0.1908;0.9816;0]; MF_Z = [0;0;1]; % 20230102_B2_straight
+%MF_X = [0.2685836;0.963256;0]; MF_Y = [-0.963256;0.2685836;0]; MF_Z = [0;0;1]; % 20230102_B2_elevator
+MF_X = [1;0;0]; MF_Y = [0;1;0]; MF_Z = [0;0;1];
+
 MF = [MF_X MF_Y MF_Z];
 
 % 1) play 3D moving trajectory of Crazyflie pose
 
-%for k = 1:numPose
-for imgIdx = 1: numPose
-    figure(1); cla;
+%for k = 1:numPose_optitrack
+for k = 1: numPose_optitrack
+     figure(1); cla;
 
-%     %% 1) draw moving trajectory
-    p_gc = stateEsti(1:3,1:imgIdx);
-    %plot3(p_gc(1,:), p_gc(2,:), p_gc(3,:), 'm', 'LineWidth', 2); hold on; grid on; axis equal;
-    plot(p_gc(1,:), p_gc(2,:), 'm', 'LineWidth', 2); hold on; grid on; axis equal;
+    %% 1) draw moving trajectory (optitrack)
+    p_gc_CF_optitrack = stateEsti_CF_optitrack(1:3,1:k);
+    plot3(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), p_gc_CF_optitrack(3,:), 'm', 'LineWidth', 2); hold on; grid on; axis equal;
     xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
     ylabel('Y[m]','FontSize',15,'fontname','times new roman');
-    %zlabel('Z[m]','FontSize',15,'fontname','times new roman');
+    zlabel('Z[m]','FontSize',15,'fontname','times new roman');
     set(gcf,'Color','w');
     set(gca,'FontSize',15,'fontname','times new roman');
 
     %% 2) draw 4 direction point cloud
-    fourPoint_xyz = pointcloud_xyz(:,1:imgIdx);
-
-    plot(fourPoint_xyz(1,:), fourPoint_xyz(2,:), '.'); hold on; % LiDAR 1
-    plot(fourPoint_xyz(4,:), fourPoint_xyz(5,:), '.'); hold on; % LiDAR 2
-    plot(fourPoint_xyz(7,:), fourPoint_xyz(8,:), '.'); hold on; % LiDAR 3
-    %plot(fourPoint_xyz(10,:), fourPoint_xyz(11,:), '.'); hold on; % LiDAR 4
-
+    sixpoint_CF_Optitrack = pointcloud_CF_Optitrack(:,1:k);
+    plot3(sixpoint_CF_Optitrack(1,:), sixpoint_CF_Optitrack(2,:), sixpoint_CF_Optitrack(3,:), '.'); hold on; % LiDAR 1
+    plot3(sixpoint_CF_Optitrack(4,:), sixpoint_CF_Optitrack(5,:), sixpoint_CF_Optitrack(6,:), '.'); hold on; % LiDAR 2
+    plot3(sixpoint_CF_Optitrack(7,:), sixpoint_CF_Optitrack(8,:), sixpoint_CF_Optitrack(9,:), '.'); hold on; % LiDAR 3
+    %plot3(sixpoint_CF_Optitrack(10,:), sixpoint_CF_Optitrack(11,:), sixpoint_CF_Optitrack(12,:), '.'); hold on; % LiDAR 4
     axis equal; hold on;
   
     %% 3) draw camera body and frame 
-    plot_inertial_frame(0.5); %view(47, 48); % plot inertial frame
-    Rgc_current = T_gc{imgIdx}(1:3,1:3); % plot body frame
-    pgc_current = T_gc{imgIdx}(1:3,4);
-%     plot_body_frame(Rgc_current, pgc_current, 0.5, 'm'); hold on;
+    plot_inertial_frame(0.5); view(47, 48); % plot inertial frame
+    Rgc_CF_current = T_gc_CF_optitrack{k}(1:3,1:3); % plot body frame
+    pgc_CF_current = T_gc_CF_optitrack{k}(1:3,4);
+    plot_CF_frame(Rgc_CF_current, pgc_CF_current, 0.5, 'm'); hold on;
 
     %% 4) Manhattan World Mapping (Line fitting)
 
   % (timestamp 제외하고) 1x18 --> 1x2 로 변형    
-    pointCloud = [pointCloud_xyz(1:imgIdx,1:3); pointCloud_xyz(1:imgIdx,4:6); pointCloud_xyz(1:imgIdx,7:9); pointCloud_xyz(1:imgIdx,10:12)]';
-    pointCloud_original = [pointCloud_xyz(1:imgIdx,1:3); pointCloud_xyz(1:imgIdx,4:6); pointCloud_xyz(1:imgIdx,7:9); pointCloud_xyz(1:imgIdx,10:12)]';
+%     pointCloud = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
+%     pointCloud_original = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9); CFPointCloudData_Optitrack(1:k,10:12)]';
 
-%     % LiDAR 4 제거 버전
-%     pointCloud = [pointCloud_xyz(1:imgIdx,1:3); pointCloud_xyz(1:imgIdx,4:6); pointCloud_xyz(1:imgIdx,7:9)]';
-%     pointCloud_original = [pointCloud_xyz(1:imgIdx,1:3); pointCloud_xyz(1:imgIdx,4:6); pointCloud_xyz(1:imgIdx,7:9)]';
+    % LiDAR 4 제거 버전
+    pointCloud = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9)]';
+    pointCloud_original = [CFPointCloudData_Optitrack(1:k,1:3); CFPointCloudData_Optitrack(1:k,4:6); CFPointCloudData_Optitrack(1:k,7:9)]';
 
-%     % LiDAR 3, 4 제거 버전
-%     pointCloud = [pointCloud_xyz(1:imgIdx,1:3); pointCloud_xyz(1:imgIdx,4:6)]';
-%     pointCloud_original = [pointCloud_xyz(1:imgIdx,1:3);pointCloud_xyz(1:imgIdx,4:6)]';
+    % 따로 txt 파일로 저장하려고 만든 변수
+    xyz_pointCloud_original = pointCloud_original';
 
-
-    % current LiDAR 1
-    current_points = struct('x',pointCloud_xyz(imgIdx,1),'y',pointCloud_xyz(imgIdx,2),'z',pointCloud_xyz(imgIdx,3));
-    % current LiDAR 2
-    current_points = [current_points, struct('x',pointCloud_xyz(imgIdx,4),'y',pointCloud_xyz(imgIdx,5),'z',pointCloud_xyz(imgIdx,6))];
-    % current LiDAR 3
-    current_points = [current_points, struct('x',pointCloud_xyz(imgIdx,7),'y',pointCloud_xyz(imgIdx,8),'z',pointCloud_xyz(imgIdx,9))];
-    % current LiDAR 4
-    current_points = [current_points, struct('x',pointCloud_xyz(imgIdx,10),'y',pointCloud_xyz(imgIdx,11),'z',pointCloud_xyz(imgIdx,12))];
-    
-    num_current_points = size(current_points,2); 
-    for i = 1 : num_current_points
-        plot(current_points(i).x, current_points(i).y, 'r*');
-    end
 
     % line을 만드는 데 사용된 point 제거
     if used_points_sign == 0
@@ -184,11 +161,11 @@ for imgIdx = 1: numPose
     end
     
     %% Line 늘리기
-    if MW_Map_sign == 0 % MW_Map이 아직 생성이 안됐다면
+    if walls_sign == 0 % walls가 아직 생성이 안됐다면
     else
-        for i = 1:length(MW_Map)
-            if MW_Map(i).alignment == 'y'
-                pointsSameWall = PointsSameWall(pointCloud, MW_Map(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
+        for i = 1:length(walls)
+            if walls(i).alignment == 'y'
+                pointsSameWall = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT);  
                 if isempty(pointsSameWall) ~=0
                     continue;
                 elseif isempty(pointsSameWall) == 0
@@ -198,20 +175,20 @@ for imgIdx = 1: numPose
                     xmax = max(pointCloud(1,pointsSameWall));
 
                     % y는 중요하지 않음
-                    MW_Map(i).min_xy_M = [min(xmin, MW_Map(i).min_xy_M(1)) MW_Map(i).min_xy_M(2)];
-                    MW_Map(i).max_xy_M = [max(xmax, MW_Map(i).max_xy_M(1)) MW_Map(i).max_xy_M(2)];
+                    walls(i).min_xy_M = [min(xmin, walls(i).min_xy_M(1)) walls(i).min_xy_M(2)];
+                    walls(i).max_xy_M = [max(xmax, walls(i).max_xy_M(1)) walls(i).max_xy_M(2)];
 
 
                     % pointCloud에서 pointsIdxInThres 제거
                     pointCloud(:,pointsSameWall) = [];
 
 %                     % 각 line에 새로 포함된 point 개수 추가 
-%                     MW_Map(i).score = length(pointsIdxInThres); % 다시!
+%                     walls(i).score = length(pointsIdxInThres); % 다시!
                 end
                   
 
-            elseif MW_Map(i).alignment == 'x'
-                pointsSameWall = PointsSameWall(pointCloud, MW_Map(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
+            elseif walls(i).alignment == 'x'
+                pointsSameWall = PointsSameWall(pointCloud, walls(i), TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT); 
 
                 if isempty(pointsSameWall) ~=0
                     continue;
@@ -221,8 +198,8 @@ for imgIdx = 1: numPose
                     ymax = max(pointCloud(2,pointsSameWall));
 
                     % x는 중요하지 않음
-                    MW_Map(i).min_xy_M = [MW_Map(i).min_xy_M(1) min(ymin, MW_Map(i).min_xy_M(2))];
-                    MW_Map(i).max_xy_M = [MW_Map(i).max_xy_M(1) max(ymax, MW_Map(i).max_xy_M(2))];
+                    walls(i).min_xy_M = [walls(i).min_xy_M(1) min(ymin, walls(i).min_xy_M(2))];
+                    walls(i).max_xy_M = [walls(i).max_xy_M(1) max(ymax, walls(i).max_xy_M(2))];
 
 
                     % pointCloud에서 pointsIdxInThres 제거
@@ -233,25 +210,7 @@ for imgIdx = 1: numPose
         end
     end
 
-    %% current_points(k)와 MW_Map 의 가장 가까운 line 찾기
     
-    if MW_Map_sign == 0 % MW_Map이 아직 생성이 안됐다면
-    else
-        for k = 1:num_current_points
-            if (current_points(k).x == 0 && current_points(k).y == 0 && current_points(k).z == 0) % 무시하는 점
-            else
-                [dist,Map_index] = nearby_LMs_four_point_LiDAR(current_points(k), MW_Map);
-                % 이때 current_points(k)는 해당 MW_Map의 alignment를 따라간다. 필요시 walls 만들기
-
-                if (dist < isPointInThisWall_th)
-                    disp("This point is correspoinds to this wall.")
-                    % [state, MW_Map] = updateExistingStates_withFourPointLiDAR(state, MW_Map, walls(k),Map_index, optsLPSLAM)
-                end
-            end
-        end
-    end
-
-
     %% Line 생성(line RANSAC) 및 walls 누적
     while(true)
 
@@ -277,67 +236,72 @@ for imgIdx = 1: numPose
             % 1) Angle difference between line and Manhattan frame --> refit slope
             slope_line = -(lineModel(1)/lineModel(2));
             if angleBetweenTwo3DVectors(MF_X, slope_line) < ANGLE_TH %[deg]
-                refitted_slope_line = MF_X(2)/MF_X(1); % MF X축과 평행관계로 refit
+%                 refitted_slope_line = MF_X(2)/MF_X(1); % MF X축과 평행관계로 refit
     
                 % middlePoint를 지나고 기울기가 refitted_slope_line인 직선으로 변경
                 % reffited line: a*x + b*y + c = 0
-                a = refitted_slope_line;
-                b = -1;
-                c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
-                refittedLineModel = [a b c];
+%                 a = refitted_slope_line;
+%                 b = -1;
+%                 c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
+%                 refittedLineModel = [a b c];
+                refittedLineModel = [0 0 0];
              
                 xmin = min(pointCloud(1,lineIdx));
                 xmax = max(pointCloud(1,lineIdx));
     
-                x_line = [xmin, xmax]; % x를 제한
-                y_line = refitted_slope_line * x_line + (middlePoint(2) - (refitted_slope_line * middlePoint(1)));
+%                 % ransac으로 생성한 refit된 line 그려볼 때만 사용
+%                 x_line = [xmin, xmax]; % x를 제한
+%                 y_line = refitted_slope_line * x_line + (middlePoint(2) - (refitted_slope_line * middlePoint(1)));
     
                 % walls struct field
                 alignment = 'y'; % Manhattan frame(MF) Y축에 수직
-                offset = c/sqrt((refitted_slope_line^2)+1);
+%                 offset = c/sqrt((refitted_slope_line^2)+1);
+                offset = middlePoint(2);
+
+
                 n = MF_Y;
                 score = size(lineIdx,2);
-                refittedLineModel = refittedLineModel; % 이건 line 늘리기 때 확인용
     %             max_xy_M = [xmax a*xmax+c]; % 사실 양 끝점
     %             min_xy_M = [xmin a*xmin+c]; 
                 max_xy_M = [xmax max(pointCloud(2,lineIdx))];
                 min_xy_M = [xmin min(pointCloud(2,lineIdx))]; 
                
                 % aumgent walls
-                MW_Map = [MW_Map; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];
-                MW_Map_sign = MW_Map_sign + 1;
+                walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];
+                walls_sign = walls_sign + 1;
     
-                %walls_current = [walls_current; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M, 'imgIdx', k)];
-
-                % MW_Map 내의 line들 중에서 제거할 것이 있으면 제거하기
+                % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
                 removeUnnecessaryLineInWalls
     
             %%
             else
     
-                refitted_slope_line = -1/(MF_X(2)/MF_X(1)); % MF Y축과 평행관계로 refit
+%                 refitted_slope_line = -1/(MF_X(2)/MF_X(1)); % MF Y축과 평행관계로 refit
     
                 % middlePoint를 지나고 기울기가 refitted_slope_line인 직선으로 변경
                 % reffited line: a*x + b*y + c = 0
-                a = refitted_slope_line;
-                b = -1;
-                c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
-                refittedLineModel = [a b c];
+%                 a = refitted_slope_line;
+%                 b = -1;
+%                 c = middlePoint(2) - (refitted_slope_line * middlePoint(1));
+%                 refittedLineModel = [a b c];
+                refittedLineModel = [0 0 0];
                 
                 
                 ymin = min(pointCloud(2,lineIdx));
                 ymax = max(pointCloud(2,lineIdx));
     
-                y_line = [ymin, ymax];
-                x_line = (y_line - (middlePoint(2) - (refitted_slope_line * middlePoint(1))))/refitted_slope_line;   
+%                 % ransac으로 생성한 refit된 line 그려볼 때만 사용    
+%                 y_line = [ymin, ymax];
+%                 x_line = (y_line - (middlePoint(2) - (refitted_slope_line * middlePoint(1))))/refitted_slope_line;   
     
     
                 % walls struct field
                 alignment = 'x'; % Manhattan frame(MF) X축에 수직
-                offset = c/sqrt((refitted_slope_line^2)+1);
+%                 offset = c/sqrt((refitted_slope_line^2)+1);
+                offset = middlePoint(1);
+
                 n = MF_X;
                 score = size(lineIdx,2);
-                refittedLineModel = refittedLineModel; % 이건 line 늘리기 때 확인용
     %             max_xy_M = [(ymax-c)/a ymax]; % 사실 양 끝점
     %             min_xy_M = [(ymin-c)/a ymin];
                 max_xy_M = [max(pointCloud(1,lineIdx)) ymax]; 
@@ -345,10 +309,8 @@ for imgIdx = 1: numPose
     
     
                 % aumgent walls
-                MW_Map = [MW_Map; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];   
-                MW_Map_sign = MW_Map_sign + 1;
-
-                %walls_current = [walls_current; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M, 'imgIdx', k)];
+                walls = [walls; struct('alignment', alignment, 'offset', offset, 'n', n, 'score', score, 'refittedLineModel', refittedLineModel, 'max_xy_M', max_xy_M, 'min_xy_M', min_xy_M)];   
+                walls_sign = walls_sign + 1;
     
                 % walls 내의 line들 중에서 제거할 것이 있으면 제거하기
                 removeUnnecessaryLineInWalls
@@ -395,14 +357,22 @@ for imgIdx = 1: numPose
         
     end
 
-%     plot_plane; view(47, 48);
+    plot_plane; view(47, 48);
 
 
     % 여기는 while문을 빠져나오고 아무것도 안 할 때 (RANSAC으로 생성한 line의 inlier point 개수가 TH 미만이어서 walls에 추가도 안하고 plot도 안 함
+    figure(3); %view(-90,90)
+    plot(pointCloud_original(1,:), pointCloud_original(2,:), 'b.'); hold on; grid on; axis equal;
+    plot(p_gc_CF_optitrack(1,:), p_gc_CF_optitrack(2,:), 'm', 'LineWidth', 2);
+    plot_inertial_frame(0.5);
+    %plot_CF_frame(Rgc_CF_current, pgc_CF_current, 0.5, 'm'); hold on;
     plot_2Dmap_line_xyplane
+    xlabel('X[m]','FontSize',15,'fontname','times new roman') ;
+    ylabel('Y[m]','FontSize',15,'fontname','times new roman');
     set(gcf,'Color','w');
     set(gca,'FontSize',15,'fontname','times new roman');
 
-    refresh; pause(0.01); 
-    imgIdx
+    refresh; pause(0.01); k
 end
+
+writematrix(xyz_pointCloud_original, '3DpointCloud.txt', 'delimiter', ' ')
