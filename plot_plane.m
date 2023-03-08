@@ -21,13 +21,10 @@ for i = 1:length(walls)
         max_xy_M = walls(i).max_xy_M;
         min_xy_M = walls(i).min_xy_M;
             
-        %line([x_offset x_offset],[min_xy_M(2) max_xy_M(2)],'Color','k','LineWidth',4.0); hold on;
-%         x1 = (min_xy_M(2) - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(1);
         x1 = x_offset;
         y1 = min_xy_M(2);
         z1 = 0;
 
-%         x2 = (max_xy_M(2) - walls(i).refittedLineModel(3))/walls(i).refittedLineModel(1);
         x2 = x_offset;
         y2 = max_xy_M(2);
         z2 = 0;
@@ -38,7 +35,7 @@ for i = 1:length(walls)
             
         vertex = [x1 y1 z1; x2 y2 z2; x3 y3 z3; x4 y4 z4];
         face = [1 2 3 4];
-        patch('Faces',face,'Vertices',vertex, 'Facecolor',[0.5 0.5 0.5]); % Facecolor: [R G B]
+        patch('Faces',face,'Vertices',vertex, 'Facecolor',[1 0 0]); % Facecolor: [R G B] % [0.5 0.5 0.5] gray
         view(3); % 3D visualization
         hold on;
     
@@ -47,14 +44,11 @@ for i = 1:length(walls)
         max_xy_M = walls(i).max_xy_M;
         min_xy_M = walls(i).min_xy_M;
             
-        %line([min_xy_M(1) max_xy_M(1)],[y_offset y_offset],'Color','k','LineWidth',4.0); hold on;
         x1 = min_xy_M(1);
-%         y1 = walls(i).refittedLineModel(1)*x1 + walls(i).refittedLineModel(3);
         y1 = y_offset;
         z1 = 0;
 
         x2 = max_xy_M(1);
-%         y2 = walls(i).refittedLineModel(1)*x1 + walls(i).refittedLineModel(3);
         y2 = y_offset;
         z2 = 0;
 
@@ -64,7 +58,7 @@ for i = 1:length(walls)
         
         vertex = [x1 y1 z1; x2 y2 z2; x3 y3 z3; x4 y4 z4];
         face = [1 2 3 4];
-        patch('Faces',face,'Vertices',vertex, 'Facecolor',[0.5 0.5 0.5]); % Facecolor: [R G B]
+        patch('Faces',face,'Vertices',vertex, 'Facecolor',[0 1 0]); % Facecolor: [R G B] % [0.5 0.5 0.5] gray
         view(3); % 3D visualization
         hold on;
     end
