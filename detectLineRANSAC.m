@@ -25,7 +25,7 @@ function [maxMatchingIdx, maxMatchingNum, maxLineModel] = detectLineRANSAC(point
 % log:
 % 2022-09-15 : Complete
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
+
 
 
 % initialize RANSAC model parameters
