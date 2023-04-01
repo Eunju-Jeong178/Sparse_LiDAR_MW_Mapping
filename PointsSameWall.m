@@ -12,7 +12,6 @@
 % 1) pointsIdxInThres : 직선과의 거리가 TH_DISTANCE 안에 있는 poinCloud 안의 모든 점들
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 function [pointsIdxSameWall] = PointsSameWall(pointCloud, walls, TH_DISTANCE_BETWEEN_REFITTED_LINE, TH_DISTANCE_BETWEEN_ENDPOINT) 
  
     % set parameters
