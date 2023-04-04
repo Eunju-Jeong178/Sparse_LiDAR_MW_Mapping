@@ -12,6 +12,7 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 function thetaInDegrees = angleBetweenTwo3DVectors(MF_X,slope_line)
 
     u1 = MF_X; % Manhattan frame
