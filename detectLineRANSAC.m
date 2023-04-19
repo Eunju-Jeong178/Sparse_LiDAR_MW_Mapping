@@ -26,8 +26,6 @@ function [maxMatchingIdx, maxMatchingNum, maxLineModel] = detectLineRANSAC(point
 % 2022-09-15 : Complete
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
 % initialize RANSAC model parameters
 totalPointNum = size(pointCloudRef, 2);
 samplePointNum = 2;
