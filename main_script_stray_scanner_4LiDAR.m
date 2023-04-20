@@ -17,6 +17,7 @@ clear variables; %clear classes;
 rand('state',0); % rand('state',sum(100*clock));
 dbstop if error;
 
+
 %% common setting to read text files
 
 delimiter = ' ';
