@@ -11,8 +11,8 @@
 run **main_script_MW_mapping.m**
 
 ## Demo
-* 2D floor plan
+* **2D floor plan**
 <img src="https://user-images.githubusercontent.com/77608922/233639847-3d595d61-c61d-4a2a-adb4-06b98b2fb5f2.gif" width="500">
 
-* 3D map
+* **3D map**
 <img src="https://user-images.githubusercontent.com/77608922/233639889-9f59d130-dc6d-415c-8778-daef9102f1ee.gif" width="500">
