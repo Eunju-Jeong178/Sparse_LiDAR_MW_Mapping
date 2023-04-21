@@ -293,7 +293,7 @@ for imgIdx = 1:numPose_ARKit
         end       
     end
 
-    plot_2Dmap_line_xyplane; %view(0, 90); 
-    plot_plane_FPLiDAR; view(47, 48);
+    plot_floor_plan; %view(0, 90);    % plot 2D floor plan
+    plot_plane; view(47, 48); % plot 3D map
     imgIdx
 end 
