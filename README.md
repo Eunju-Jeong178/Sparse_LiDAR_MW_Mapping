@@ -7,6 +7,13 @@
 
 * The four-point LiDAR can obtain a significantly smaller amount of range measurements than the typical LiDAR with more than 180 range measurements per scan, resulting in **a SLAM with a sparse sensing problem**. We overcome this challenging problem by effectively utilizing the **Manhattan world (MW) structural regularities** of the indoor environments, and recursive **line RANSAC** to represent detected surrounding walls as orthogonal lines directly modeled as landmarks with insufficient range measurements. 
 
+## Input data
+    1) ARKit_6DoF_pose.txt
+    r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
+    
+    2) 3D_point_cloud.txt
+    x y z x y z x y z x y z
+
 ## Run code
 run **main_script_MW_mapping.m**
 
