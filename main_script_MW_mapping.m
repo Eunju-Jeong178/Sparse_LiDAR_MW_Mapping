@@ -105,10 +105,10 @@ for imgIdx = 1:numPose_ARKit
 
 
     %% 3) draw camera body frame and inertial frame 
-    plot_inertial_frame(0.5); % plot inertial frame
-    plot_body_frame(Rgc_current, pgc_current); 
     Rgc_current = T_gc_ARKit{imgIdx}(1:3,1:3); % rotational motion
     pgc_current = T_gc_ARKit{imgIdx}(1:3,4); % translational motion
+    plot_inertial_frame(0.5); % plot inertial frame 
+    plot_body_frame(Rgc_current, pgc_current);
     set(gca,'XDir','reverse'); set(gca,'YDir','reverse'); axis equal; hold on;
 
 
@@ -189,7 +189,7 @@ for imgIdx = 1:numPose_ARKit
             elseif MW_Map_FPLiDAR(i).alignment == 'x'
                 
                 % find the points corresponding to the line stored in MW_Map_FPLiDAR among the newly observed points
-                pointsSameWall = PointsSameWall(pointCloud, MW_Map_FPLiDAR(i), th_distance_between_refitted_line, th_distance_between_endPoint); 
+                pointsSameWall = points_same_wall(pointCloud, MW_Map_FPLiDAR(i), th_distance_between_refitted_line, th_distance_between_endPoint); 
 
                 % newly observed points corresponding to existing walls
                 if isempty(pointsSameWall) == 0
@@ -293,7 +293,7 @@ for imgIdx = 1:numPose_ARKit
         end       
     end
 
-    plot_floor_plan; %view(0, 90);    % plot 2D floor plan
-    plot_plane; view(47, 48); % plot 3D map
+    plot_floor_plan; %view(0, 90); 
+    plot_plane; view(47, 48);
     imgIdx
 end 
