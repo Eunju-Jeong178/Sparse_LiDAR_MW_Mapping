@@ -15,7 +15,7 @@
     timestamp, point1_x, point1_y, point1_z, point2_x, point2_y, point2_z, point3_x, point3_y, point3_z, point4_x, point4_y, point4_z
 
 ## Run code
-run **main_script_MW_mapping.m**
+    run **main_script_MW_mapping.m**
 
 ## Demo
 * **2D floor plan**
