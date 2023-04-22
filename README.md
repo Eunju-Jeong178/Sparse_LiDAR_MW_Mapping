@@ -17,7 +17,7 @@
 ## Run code
 run **main_script_MW_mapping.m**
 
-## Demos
+## Demo
 * **2D floor plan**
 <img src="https://user-images.githubusercontent.com/77608922/233639847-3d595d61-c61d-4a2a-adb4-06b98b2fb5f2.gif" width="500">
 
