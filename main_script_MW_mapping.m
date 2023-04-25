@@ -9,7 +9,6 @@
 %               
 % output figure : Manhattan world (MW) mapping in real time (2D floor plan & 3D plane map)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 clc;
 close all;
 
@@ -293,7 +292,7 @@ for imgIdx = 1:numPose_ARKit
         end       
     end
 
-    plot_floor_plan; %view(0, 90); 
-    plot_plane; view(47, 48);
+    plot_floor_plan; %view(0, 90); % 2D floor plan
+    plot_plane; view(47, 48); % 3D map
     imgIdx
 end 
