@@ -9,7 +9,7 @@
 %--------------------------------------------------------------------------
 
 % wall color reference
-% http://www.n2n.pe.kr/lev-1/color.htm
+% (http://www.n2n.pe.kr/lev-1/color.htm)
 
 ceiling_height = 2.5; 
     
