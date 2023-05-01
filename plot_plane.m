@@ -18,17 +18,18 @@ for i = 1:length(MW_Map_FPLiDAR)
         x_offset = MW_Map_FPLiDAR(i).offset;
         max_xy_M = MW_Map_FPLiDAR(i).max_xyz_M;
         min_xy_M = MW_Map_FPLiDAR(i).min_xyz_M;
-            
+        
+        % Point 1
         x1 = x_offset;
         y1 = min_xy_M(2);
         z1 = 0;
-
+        % Point 2
         x2 = x_offset;
         y2 = max_xy_M(2);
         z2 = 0;
-
+        % Point 3
         x3 = x2; y3 = y2; z3 = ceiling_height;
-
+        % Point 4
         x4 = x1; y4 = y1; z4 = ceiling_height;
             
         vertex = [x1 y1 z1; x2 y2 z2; x3 y3 z3; x4 y4 z4];
