@@ -2,6 +2,7 @@
 % Description:
 %   draw walls orthogonal to the each axis of the global Manhattan frame(MF)
 %--------------------------------------------------------------------------
+    
 for i = 1:length(MW_Map_FPLiDAR)
     % The wall orthogonal to the X-axis of the MF
     if MW_Map_FPLiDAR(i).alignment == 'x' 
