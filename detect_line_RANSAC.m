@@ -14,6 +14,7 @@ function [maxMatchingIdx, maxMatchingNum, maxLineModel] = detectLineRANSAC(point
 %   distance: threshold distance between point and the line [m]
 %--------------------------------------------------------------------------
 
+
 % initialize RANSAC model parameters
 totalPointNum = size(pointCloudRef, 2);
 samplePointNum = 2;
