@@ -65,7 +65,7 @@ num_inlier_points_th = 40;                % If the number of inlier points of th
 angle_th = 5;                             % unit: [deg], Angle difference threshold with one of the MF axis. We refit the slope of the line to orthogonal to the corresponding axis 
 th_distance_between_refitted_line = 0.3;  % unit: [m], If the distance between the line and the newly detected point is within this value, we extend the length the line. 
 th_distance_between_endPoint = 0.7;       % unit: [m], If the distance between the endpoint of the line and the newly detected point is less than this value, we extend the length the line.  
-parallel_offset_th = 0.5;                 % unit: [m], If the distance between two lines is less than this value, merge into one line
+parallel_offset_th = 0.4;                 % unit: [m], If the distance between two lines is less than this value, merge into one line
 %-----------------------------------------
 
 MW_Map_FPLiDAR_sign = false;    % Whether Manhattan world map is built
