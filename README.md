@@ -3,6 +3,8 @@
 ## Description
 * This code uses a low-cost four-point LiDAR that can only measure four distances per scan to map a structured indoor environment. This code is part of **FL-SLAM**. **(RA-L publised 2023.09, "Linear Four-Point LiDAR SLAM for Manhattan World Environments", Eunju Jeong, Jina Lee, Suyoung Kang, and Pyojin Kim)**
 
+* https://ieeexplore.ieee.org/document/10250905
+
 * Users can change the mapping parameters in main_script_MW_mapping.m according to the input data.
 
 <img src="https://user-images.githubusercontent.com/77608922/233629245-58a2a99d-6c0d-4492-9009-d012fbe193ce.PNG" width="700">
