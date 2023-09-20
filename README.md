@@ -1,7 +1,7 @@
 # Manhattan world mapping in real time with sparse sensing
 
 ## Description
-* This code uses a low-cost four-point LiDAR that can only measure four distances per scan to map a structured indoor environment. This code is part of **FL-SLAM**. **(RA-L accepted - 2023.08.04, "Linear Four-Point LiDAR SLAM for Manhattan World Environments", Eunju Jeong, Jina Lee, Suyoung Kang, and Pyojin Kim)**
+* This code uses a low-cost four-point LiDAR that can only measure four distances per scan to map a structured indoor environment. This code is part of **FL-SLAM**. **(RA-L publised 2023.09, "Linear Four-Point LiDAR SLAM for Manhattan World Environments", Eunju Jeong, Jina Lee, Suyoung Kang, and Pyojin Kim)**
 
 * Users can change the mapping parameters in main_script_MW_mapping.m according to the input data.
 
