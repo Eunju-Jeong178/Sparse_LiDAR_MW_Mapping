@@ -9,6 +9,7 @@
 %               
 % output figure : Manhattan world (MW) mapping in real time (2D floor plan & 3D plane map)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 clc;
 close all;
 
