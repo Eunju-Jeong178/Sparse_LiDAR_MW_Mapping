@@ -25,7 +25,9 @@
 
 ## Demo
 * **2D floor plan**
-<img src="https://user-images.githubusercontent.com/77608922/233639847-3d595d61-c61d-4a2a-adb4-06b98b2fb5f2.gif" width="500">
+![KakaoTalk_20240312_212809097](https://github.com/Eunju-Jeong178/Sparse_LiDAR_MW_Mapping/assets/77608922/8f36e612-afea-42e0-b6d1-202f81027a9b)
+
 
 * **3D map**
-<img src="https://user-images.githubusercontent.com/77608922/233639889-9f59d130-dc6d-415c-8778-daef9102f1ee.gif" width="500">
+![KakaoTalk_20240312_212809097_01](https://github.com/Eunju-Jeong178/Sparse_LiDAR_MW_Mapping/assets/77608922/efc3bea3-5891-45bb-9036-c00b8037bd42)
+
